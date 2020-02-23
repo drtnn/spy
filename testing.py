@@ -56,5 +56,4 @@ def admSettings():
 	conn.commit()
 	conn.close()
 
-admSettings()
 bot.polling(none_stop=True)
