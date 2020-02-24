@@ -84,7 +84,7 @@ def givingRoles(group_id):
 	cursor.execute("SELECT userID FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchall()
 	numOfGamers = len(row)
-	if numOfGamers < 5:
+	if numOfGamers < 5:#####################################################################################
 		conn.close()
 		return 1
 	randomNumber = random.randint(0, numOfGamers - 1)
@@ -168,8 +168,6 @@ def getNumberOfGamersByGroupId(group_id):
 	if row != None:
 		print(row[0])
 		return row[0]
-	else:
-		return None
 
 def editInvite(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -177,7 +175,7 @@ def editInvite(group_id):
 	invite_id = getInviteID(group_id)
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
-	text = "Жми на кнопку, чтобы присоединиться к игре!\nИгроки: "
+	text = "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: "
 	cursor.execute("SELECT * FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
 	i = False
@@ -205,6 +203,8 @@ def givingWords(group_id):
 	word = getWord()
 	for i in gamers:
 		bot.send_message(i[0], "Итак, ваше место - {}".format(word))
+	cursor.execute("INSERT INTO groupsWord (grpID, word) VALUES ('%d', '%s')" % (group_id, word))
+	conn.commit()
 	cursor.execute("SELECT userID FROM spyID WHERE grpID = '%d'" % (group_id))
 	bot.send_message(cursor.fetchone()[0], "Ты - шпион! Постарайся угадать место и напиши мне /answer.")
 	conn.close()
@@ -213,22 +213,42 @@ def gameStarting(group_id):
 	if getSpyID(group_id) != None:
 		return
 	if gameIsExisted(group_id) == 0:
+		# first_invite_id = getInviteID(group_id)
 		bot.delete_message(group_id, getInviteID(group_id))
 		if givingRoles(group_id) == 1:
 			bot.send_message(group_id, "Недостаточно игроков для начала игры")
 			endGame(group_id)
 			return 1
 		givingWords(group_id)
-		bot.send_message(group_id, "Начало игры!")
-		t = threading.Thread(target=waitingUsers, name="Thread2Poll{}".format(str(group_id)), args=(group_id, 60))###################################################################################################################
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("Слово тут!", url="t.me/findspy_bot"))
+		bot.send_message(group_id, "Начало игры!", reply_markup=key)
+		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, 60))###################################################################################################################
 		t.start()
 		t.join()
-		individualPoll(group_id)
-		t = threading.Thread(target=waitingUsers, name="Thread2Poll{}".format(str(group_id)), args=(group_id, 60))###################################################################################################################
+		t = threading.Thread(target=whenToEndPoll, name="Thread2Poll{}".format(str(group_id), args=(group_id, 60)))
 		t.start()
-		t.join()
-		if gameIsExisted(group_id) == 1:
-			startGameResult(group_id)
+
+def whenToStartPoll(group_id, endTime):
+	timing = 0
+	while timing <= endTime and gameIsExisted(group_id) == 0:
+		time.sleep(3)
+		timing += 3
+	individualPoll(group_id)
+
+def whenToEndInvite(group_id, endTime):
+	timing = 0
+	while timing <= endTime and len(getGamersByGroupId(group_id)) != getNumberOfGamersByGroupId(group_id):
+		time.sleep(3)
+		timing += 3
+	gameStarting(group_id)
+
+def whenToEndPoll(group_id, endTime):
+	timing = 0
+	while timing <= endTime and len(pollResult(group_id)) == len(getGamersByGroupId(group_id)):
+		time.sleep(3)
+		timing += 3
+	pollResult(group_id)
 
 def individualPoll(group_id):
 	row = getGamersByGroupId(group_id)
@@ -238,10 +258,8 @@ def individualPoll(group_id):
 		for j in row:
 			if i[0] == j[0]:
 				continue
-			if i[0] == getSpyID(group_id):
-				continue
 			key.add(types.InlineKeyboardButton(text=getNameFromGameRoom(j[0]), callback_data=str(j[0]) + "poll"))
-		bot.send_message(i[0], "Выберите предполагаемого шпиона", reply_markup=key)
+		bot.send_message(i[0], "Выберите предполагаемого шпиона!\nПомни, у тебя только одна попытка.", reply_markup=key)
 
 def getNumberFromCall(data, letter):
 	num = ""
@@ -276,7 +294,6 @@ def maxdb(group_id):
 			pollUsers.append(i[0])
 	return pollUsers
 
-
 def pollHandler(group_id, user_id, poll_data):
 	userPoll = getNumberFromCall(poll_data, 'p')
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -301,30 +318,27 @@ def getSpyID(group_id):
 	conn.close()
 	if row != None:
 		return row[0]
-	else:
-		return None
 
 def isSpy(group_id, user_id):
 	if getSpyID(group_id) == user_id:
 		return user_id
-	else:
-		return None
 
 def startGameResult(group_id):
 	row = maxdb(group_id)
 	if len(row) > 1:
 		randomNumber = random.randint(1, len(row))
 		spy = isSpy(group_id, row[randomNumber - 1])
+		realSpy = getSpyID(group_id)
 		if spy == None:
-			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(spy, getNameFromGameRoom(spy)), parse_mode='html')
+			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 		else:
-			bot.send_message(group_id, "Поздравляем, вы нашли шпиона!\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(spy, getNameFromGameRoom(spy)), parse_mode='html')
+			bot.send_message(group_id, "Поздравляем, вы нашли шпиона!\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 	else:
 		spy = isSpy(group_id, row[0])
 		if spy == None:
-			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(spy, getNameFromGameRoom(spy)), parse_mode='html')
+			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 		else:
-			bot.send_message(group_id, "Поздравляем, вы нашли шпиона!\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(spy, getNameFromGameRoom(spy)), parse_mode='html')
+			bot.send_message(group_id, "Поздравляем, вы нашли шпиона!\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 	endGame(group_id)
 
 def getGroupbByUsersIDInGame(user_id):
@@ -335,8 +349,6 @@ def getGroupbByUsersIDInGame(user_id):
 	conn.close()
 	if row != None:
 		return row[0]
-	else:
-		return None
 
 def getNameFromGameRoom(user_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -346,8 +358,39 @@ def getNameFromGameRoom(user_id):
 	conn.close()
 	if row != None:
 		return row[0]
+
+def wordsPercent(s1, s2):
+    if len(s1) > len(s2):
+        s1, s2 = s2, s1
+    p = 0
+    for i in range(len(s1)):
+        if s1[i] == s2[i]:
+            p += 1
+    return str(int(p/len(s1)*100))+'%'
+
+def getGroupsWord(group_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT word FROM groupsWord WHERE grpID = '%d'" % (group_id))
+	row = cursor.fetchone()
+	conn.close()
+	if row != None:
+		return row[0]
+
+def checkingAnswer(message, group_id):
+	word = getGroupsWord(group_id)
+	if message.text == word:
+		bot.send_message(message.from_user.id, "Браво, абсолютно верно!")
+		SpyWins(group_id)
 	else:
-		return None
+		bot.send_message(message.from_user.id, "Слово(а) совпадают на " + wordsPercent(message.text, word) + "\nМожешь попробовать еще раз - /answer")
+
+
+def SpyWins(group_id):
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Сыграть еще раз!", callback_data="game"))
+	bot.send_message(group_id, "Поздравляем шпиона <a href='tg://user?id={}'>{}</a> с победой!".format(c.from_user.id, c.message.from_user.first_name), parse_mode='html', reply_markup=key))
+	endGame(group_id)
 
 ###########################
 ###### Group Handler ######
@@ -355,9 +398,8 @@ def getNameFromGameRoom(user_id):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-	print(message)
+	# print(message)
 	if message.chat.type == 'supergroup':
-		print(1)
 		if addGroup(message.chat.id) == 0:
 			admSettings(message.chat.id)
 		key = types.InlineKeyboardMarkup()
@@ -372,16 +414,30 @@ def game(message):
 	if message.chat.type == 'supergroup' and gameIsExisted(message.chat.id) == 1:
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
-		bot.send_message(message.chat.id,"Жми на кнопку, чтобы присоединиться к игре!", reply_markup=key)
-		t = threading.Thread(target=waitingUsers, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 25))###################################################################################################################
+		bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(c.from_user.id, c.message.from_user.first_name), parse_mode="html", reply_markup=key)
+		if addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name) == 2:
+			btn = types.InlineKeyboardMarkup()
+			btn.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
+			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(c.from_user.id, c.message.from_user.first_name), parse_mode='html', reply_markup=btn)
+			return
+		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 30))###################################################################################################################
 		t.start()
-		t.join()
-		gameStarting(message.chat.id)
 
-@bot.message_handler(commands=['game'])
+@bot.message_handler(commands=['end'])
 def end(message):
-	if message.chat.type == 'supergroup' and gameIsExisted(message.chat.id) == 1:
+	if message.chat.type == 'supergroup' and gameIsExisted(message.chat.id) == 0:
 		endGame(message.chat.id)
+
+@bot.message_handler(commands=['answer'])
+def answer(message):
+	if message.chat.type == 'private' and gameIsExisted(message.chat.id) == 0:
+		group_id = getGroupbByUsersIDInGame(message.from_user.id)
+		if getSpyID(group_id) == message.from_user.id:
+			bot.send_message(message.from_user.id, "Можешь написать мне слово, а я его проверю!")
+			bot.register_next_step_handler(message, checkingAnswer, group_id)
+		else:
+			bot.send_message(message.from_user.id, "Ты не шпион или игра еще не началась!")
+
 
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
@@ -389,21 +445,19 @@ def inline(c):
 	if c.data == 'permissions':
 		if checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
 			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
+	if c.data == 'game':
+		game(message)
 	if c.data == 'connect':
 		if str(c.from_user.id) in c.message.text:
 			return
 		if addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name) == 2:
 			key = types.InlineKeyboardMarkup()
 			key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
-			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(c.message.from_user.id, c.message.from_user.first_name), parse_mode='html', reply_markup=key)
+			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(c.from_user.id, c.message.from_user.first_name), parse_mode='html', reply_markup=key)
 			return
-		if getGamersByGroupId(c.message.chat.id) != None and getNumberOfGamersByGroupId(c.message.chat.id) != None:
-			if len(getGamersByGroupId(c.message.chat.id)) == getNumberOfGamersByGroupId(c.message.chat.id) - 1:
-				inviteID(c.message.chat.id, c.message.message_id)
-				editInvite(c.message.chat.id)
-				gameStarting(c.message.chat.id)
 		inviteID(c.message.chat.id, c.message.message_id)
 		editInvite(c.message.chat.id)
+		# Добавить случай, когда человек лишний
 	if "poll" in c.data:
 		bot.edit_message_text("Вы сделали свой выбор!", c.message.chat.id, c.message.message_id)
 		pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
