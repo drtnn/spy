@@ -129,4 +129,7 @@ def fun(s1, s2):
         if s1[i] == s2[i]:
             p += 1
     return str(int(p/len(s1)*100))+'%'
+
+
+print("SDS".lower())
 print(fun(input(), input()))
