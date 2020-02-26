@@ -180,9 +180,8 @@ def getInviteID(group_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT inviteID FROM messages WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
-	if row == None:
-		return 1
-	return row[0]
+	if row != None:
+		return row[0]
 
 def getGamersByGroupId(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -244,9 +243,10 @@ def givingWords(group_id):
 def gameStarting(group_id):
 	if getSpyID(group_id) != None:
 		return
-	if gameIsExisted(group_id) == 0:
+	first_invite_id = getInviteID(group_id)
+	if gameIsExisted(group_id) == 0 and first_invite_id != None:
 		# first_invite_id = getInviteID(group_id)
-		bot.delete_message(group_id, getInviteID(group_id))
+		bot.delete_message(group_id, first_invite_id)
 		if givingRoles(group_id) == 1:
 			bot.send_message(group_id, "Недостаточно игроков для начала игры")
 			endGame(group_id)
@@ -260,6 +260,10 @@ def gameStarting(group_id):
 		t.join()
 		t = threading.Thread(target=whenToEndPoll, name="Thread2Poll{}".format(str(group_id), args=(group_id, 120)))###################################################################################################################
 		t.start()
+	elif first_invite_id == None:
+		bot.send_message(group_id, "Недостаточно игроков для начала игры")
+		endGame(group_id)
+		return 1
 
 def whenToStartPoll(group_id, endTime):
 	timing = 0
@@ -452,6 +456,7 @@ def SpyWins(group_id):
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
 def AllHandler(message):
 	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None and message.from_user.id not in getGamersByGroupId(message.chat.id):
+		print(1)
 		bot.delete_message(message.chat.id, message.message_id)
 		bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
 	elif message.text == '/start' or message.text == '/start@findspy_bot':
