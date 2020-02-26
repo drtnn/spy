@@ -131,5 +131,18 @@ def fun(s1, s2):
     return str(int(p/len(s1)*100))+'%'
 
 
-print("SDS".lower())
-print(fun(input(), input()))
+def whenToEndPoll(group_id, endTime):
+	print(group_id)
+	print(endTime)
+	timing = 0
+	while timing <= endTime:
+		time.sleep(3)
+		timing += 3
+		print("whenToEndPoll")
+	print(group_id)
+
+t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(11)), args=(11, 120))###################################################################################################################
+t.start()
+
+
+
