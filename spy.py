@@ -407,14 +407,20 @@ def getNameFromGameRoom(user_id):
 def wordsPercent(string1, string2):
     s1 = string1.lower()
     s2 = string2.lower()
+    text = ""
 
+    if len(s2)/len(s1) * 100 <= 100:
+
+        text = "Совпадение по длине " + str(len(s2)/len(s1) * 100)+'%\n'
+    else:
+        text =  "Совпадение по длине " + str(len(s1)/len(s2) * 100)+'%\n'
     if len(s1) > len(s2):
         s1, s2 = s2, s1
     p = 0
     for i in range(len(s1)):
-        if s1[i] == s2[i]:
+        if s1[i] == s2[i] and s1[i].isalpha() and s2[i].isalpha():
             p += 1
-    return str(int(p/len(s1)*100))+'%'
+    return text + "Совпадение по буквам " + str(int(p/len(s1)*100))+'%'
 
 def getGroupsWord(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -443,8 +449,15 @@ def SpyWins(group_id):
 ###### Group Handler ######
 ###########################
 
+@bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
+def restrictUser(message):
+	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None:
+		bot.delete_message(message.chat.id, message.message_id)
+		bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
+
 @bot.message_handler(commands=['start'])
 def start(message):
+	print(message)
 	if message.chat.type == 'supergroup' or message.chat.type == 'group':
 		if addGroup(message.chat.id) == 0:
 			admSettings(message.chat.id)
@@ -504,7 +517,7 @@ def inline(c):
 			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
 	# if c.data == 'game':
 	# 	game(c.message)
-	if c.data == 'connect':
+	if c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
 		addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
 		if addReturn == 1:
 			return
