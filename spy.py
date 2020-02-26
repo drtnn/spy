@@ -146,7 +146,6 @@ def getAdmins(group_id):
 
 def checkPermissions(group_id, bot_id):
 	botPermissions = bot.get_chat_member(group_id, bot_id)
-	print(botPermissions)
 	if botPermissions.can_restrict_members == True and botPermissions.can_delete_messages == True and botPermissions.can_pin_messages == True:
 		# bot.send_message(group_id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
 		return 0
@@ -180,10 +179,10 @@ def getInviteID(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
 	cursor.execute("SELECT inviteID FROM messages WHERE grpID = '%d'" % (group_id))
-	row = cursor.fetchone()[0]
+	row = cursor.fetchone()
 	if row == None:
 		return 1
-	return row
+	return row[0]
 
 def getGamersByGroupId(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -451,21 +450,21 @@ def SpyWins(group_id):
 ###########################
 
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
-def restrictUser(message):
+def AllHandler(message):
 	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None and message.from_user.id not in getGamersByGroupId(message.chat.id):
 		bot.delete_message(message.chat.id, message.message_id)
 		bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
-	elif message.text == '/start':
+	elif message.text == '/start' or message.text == '/start@findspy_bot':
 		start(message)
-	elif message.text == '/end':
+	elif message.text == '/end' or message.text == '/end@findspy_bot':
 		end(message)
-	elif message.text == '/startpoll':
+	elif message.text == '/startpoll' or message.text == '/startpoll@findspy_bot':
 		startPollNow(message)
-	elif message.text == '/rules':
+	elif message.text == '/rules' or message.text == '/rules@findspy_bot':
 		rules(message)
-	elif message.text == '/game':
+	elif message.text == '/game' or message.text == '/game@findspy_bot':
 		game(message)
-	elif message.text == '/answer':
+	elif message.text == '/answer' or message.text == '/answer@findspy_bot':
 		answer(message)
 
 
