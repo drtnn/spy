@@ -146,6 +146,7 @@ def getAdmins(group_id):
 
 def checkPermissions(group_id, bot_id):
 	botPermissions = bot.get_chat_member(group_id, bot_id)
+	print(botPermissions)
 	if botPermissions.can_restrict_members == True and botPermissions.can_delete_messages == True and botPermissions.can_pin_messages == True:
 		# bot.send_message(group_id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
 		return 0
@@ -451,13 +452,25 @@ def SpyWins(group_id):
 
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
 def restrictUser(message):
-	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None:
+	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None and message.from_user.id not in getGamersByGroupId(message.chat.id):
 		bot.delete_message(message.chat.id, message.message_id)
 		bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
+	elif message.text == '/start':
+		start(message)
+	elif message.text == '/end':
+		end(message)
+	elif message.text == '/startpoll':
+		startPollNow(message)
+	elif message.text == '/rules':
+		rules(message)
+	elif message.text == '/game':
+		game(message)
+	elif message.text == '/answer':
+		answer(message)
 
-@bot.message_handler(commands=['start'])
+
+# @bot.message_handler(commands=['start'])
 def start(message):
-	print(message)
 	if message.chat.type == 'supergroup' or message.chat.type == 'group':
 		if addGroup(message.chat.id) == 0:
 			admSettings(message.chat.id)
@@ -469,16 +482,16 @@ def start(message):
 		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион. Рад, что мы теперь знакомы!")
 		addUser(message.from_user.id)
 
-@bot.message_handler(commands=['startpoll'])
+# @bot.message_handler(commands=['startpoll'])
 def startPollNow(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getPollStatus(message.chat.id) == 0 and getSpyID(message.chat.id) != None:
 		individualPoll(message.chat.id)
 		t = threading.Thread(target=whenToEndPoll, name="Thread2Poll{}".format(str(message.chat.id), args=(message.chat.id, 120)))
 		t.start()
 
-@bot.message_handler(commands=['game'])
+# @bot.message_handler(commands=['game'])
 def game(message):
-	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1:
+	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id, 1084976464) == 0:
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
 		bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
@@ -490,16 +503,16 @@ def game(message):
 		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 30))###################################################################################################################
 		t.start()
 
-@bot.message_handler(commands=['end'])
+# @bot.message_handler(commands=['end'])
 def end(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and message.from_user.id in getAdmins(message.chat.id):
 		endGame(message.chat.id)
 
-@bot.message_handler(commands=['rules'])
+# @bot.message_handler(commands=['rules'])
 def rules(message):
 	bot.send_message(message.chat.id, "В начале игры каждый получает в личном диалоге со мной сообщение с локацией или узнает, что он шпион!\nЦель игры:\n    Игрокам необходимо выявить шпиона.\n    Шпиону необходимо определить локацию.\n\nОбсуждения в беседе приветствуются!🤔")
 
-@bot.message_handler(commands=['answer'])
+# @bot.message_handler(commands=['answer'])
 def answer(message):
 	group_id = getGroupbByUsersIDInGame(message.from_user.id)
 	if message.chat.type == 'private' and gameIsExisted(group_id) == 0 and getSpyID(group_id) != None:
@@ -511,7 +524,7 @@ def answer(message):
 
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
-	print(c.data)
+	# print(c.data)
 	if c.data == 'permissions':
 		if checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
 			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
