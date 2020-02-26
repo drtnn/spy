@@ -506,6 +506,7 @@ def game(message):
 # @bot.message_handler(commands=['end'])
 def end(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and message.from_user.id in getAdmins(message.chat.id):
+		bot.send_message(message.chat.id, "Игра окончена!")
 		endGame(message.chat.id)
 
 # @bot.message_handler(commands=['rules'])
