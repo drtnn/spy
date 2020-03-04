@@ -27,9 +27,35 @@ def getWord():
 	conn.close()
 	return word
 
+def newGame(group_id, user_id, name):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT userID FROM gameRoom WHERE userID = '%d'" % (user_id))
+	if cursor.fetchone() != None:
+		conn.close()
+		return 1
+	cursor.execute("SELECT userID FROM users WHERE userID = '%d'" % (user_id))
+	if cursor.fetchone() == None:
+		conn.close()
+		return 2
+	numFromSettings = getNumberOfGamersByGroupId(group_id)
+	gamersFromGameRoom = getGamersByGroupId(group_id)
+	if numFromSettings != None and gamersFromGameRoom != None:
+		if len(gamersFromGameRoom) == numFromSettings:
+			conn.close()
+			return 
+	cursor.execute("INSERT INTO gameRoom (grpID,userID, name) VALUES ('%d','%d', '%s')" % (group_id, user_id, name))
+	conn.commit()	
+	conn.close()
+	return 0
+
 def addUserToGame(group_id, user_id, name):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
+	cursor.execute("SELECT grpID FROM gameRoom WHERE grpID = '%d'" % (group_id))
+	if cursor.fetchone() == None:
+		conn.close()
+		return 3
 	cursor.execute("SELECT userID FROM gameRoom WHERE userID = '%d'" % (user_id))
 	if cursor.fetchone() != None:
 		conn.close()
@@ -449,8 +475,92 @@ def checkingAnswer(message, group_id):
 def SpyWins(group_id):
 	key = types.InlineKeyboardMarkup()
 	# key.add(types.InlineKeyboardButton("Сыграть еще раз!", callback_data="game"))
-	bot.send_message(group_id, "Поздравляем шпиона <a href='tg://user?id={}'>{}</a> с победой!\nМесто: {}\n\nСыграем еще раз? /game".format(getGroupsWord(group_id), getSpyID(group_id), getNameFromGameRoom(getSpyID(group_id))), parse_mode='html', reply_markup=key)
+	bot.send_message(group_id, "Поздравляем шпиона <a href='tg://user?id={}'>{}</a> с победой!\nМесто: {}\n\nСыграем еще раз? /game".format(getSpyID(group_id), getNameFromGameRoom(getSpyID(group_id)), getGroupsWord(group_id)), parse_mode='html', reply_markup=key)
 	endGame(group_id)
+
+def getMyAdmins():
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT userID FROM admin")
+	row = cursor.fetchall()
+	conn.close()
+	if row != None:
+		return row
+
+def isMyAdmin(user_id):
+	admins = getMyAdmins()
+	for i in admins:
+		if user_id == i[0]:
+			return True
+	return False
+
+def getAllCreators():
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT userID FROM settings")
+	row = cursor.fetchall()
+	conn.close()
+	if row != None:
+		return row
+
+def isCreatorForSettings(user_id):
+	creators = getAllCreators()
+	for i in creators:
+		if user_id == i[0]:
+			return True
+	return False
+
+def getCreatorsGroups(user_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT grpID FROM settings WHERE userID = '%d'" % (user_id))
+	row = cursor.fetchall()
+	conn.close()
+	if row != None:
+		return row
+
+def editToGroupSettings(data, user_id, message_id):
+	group_id = getNumberFromCall(data, 's')
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Изменить максимальное число игроков", callback_data=str(group_id) + "maxgamers"))
+	key.add(types.InlineKeyboardButton("Изменить время игры", callback_data=str(group_id) + "time"))
+	key.add(types.InlineKeyboardButton("⬅️Обратно в выбор группы", callback_data="groupsettings"))
+	bot.edit_message_text("Настройки", user_id, message_id, reply_markup=key)
+
+def changeMaxGamers(message, data, user_id, message_id):
+	group_id = getNumberFromCall(data, 'm')
+	bot.edit_message_text("Введите максимальное количество игроков", user_id, message_id)
+	bot.register_next_step_handler(message, maxGamers, old_message_id=message_id, group_id=group_id)
+
+def maxGamers(message, old_message_id, group_id):
+	bot.delete_message(message.chat.id, message.message_id)
+	if message.text.isdigit() and int(message.text) < bot.get_chat_members_count(group_id):
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("UPDATE settings SET gamers = '%d' WHERE grpID = '%d'" % (int(message.text), group_id))
+		row = cursor.fetchall()
+		conn.commit()
+		conn.close()
+		changeToSettings("Максимальное число игроков изменено", message.chat.id, old_message_id)
+	elif message.text.isdigit():
+		changeToSettings("Максимальное число не может быть больше числа пользователей", message.chat.id, old_message_id)
+	else:
+		changeToSettings("Число игроков не было изменено", message.chat.id, old_message_id)
+
+def changeToSettings(text, user_id, message_id):
+	key = types.InlineKeyboardMarkup()
+	for i in getCreatorsGroups(user_id):
+		key.add(types.InlineKeyboardButton(text=bot.get_chat(i[0]).title, callback_data=str(i[0]) + "settings"))
+	bot.edit_message_text(text, user_id, message_id, reply_markup=key)
+
+def getTimeForGame(group_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT time FROM settings WHERE grpID = '%d'" % (group_id))
+	row = cursor.fetchone()
+	conn.close()
+	if row != None:
+		return ((row[0]/2) * 60)
 
 ###########################
 ###### Group Handler ######
@@ -466,7 +576,7 @@ def AllHandler(message):
 		start(message)
 	elif message.text == '/end' or message.text == '/end@findspy_bot':
 		end(message)
-	elif message.text == '/startpoll' or message.text == '/startpoll@findspy_bot':
+	elif message.text == '/startpoll@findspy_bot':
 		startPollNow(message)
 	elif message.text == '/rules' or message.text == '/rules@findspy_bot':
 		rules(message)
@@ -476,14 +586,15 @@ def AllHandler(message):
 		answer(message)
 	elif message.text == '/admword':
 		admword(message)
-	elif message.text == '/addword' and message.chat.id == 144589481:
-		bot.send_message(144589481, "Присылай новое слово!")
+	elif message.text == '/settings' or message.text == '/settings@findspy_bot':
+		settings(message)
+	elif message.text == '/addword' and isMyAdmin(message.chat.id):
+		bot.send_message(message.chat.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
-
 
 # @bot.message_handler(commands=['start'])
 def start(message):
-	if message.chat.type == 'supergroup' or message.chat.type == 'group':
+	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and message.text == '/start@findspy_bot':
 		if addGroup(message.chat.id) == 0:
 			admSettings(message.chat.id)
 		key = types.InlineKeyboardMarkup()
@@ -507,7 +618,7 @@ def game(message):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
 		bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
-		if addUserToGame(message.chat.id, message.from_user.id, message.from_user.first_name) == 2:
+		if newGame(message.chat.id, message.from_user.id, message.from_user.first_name) == 2:
 			btn = types.InlineKeyboardMarkup()
 			btn.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
 			bot.send_message(message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(message.from_user.id, message.from_user.first_name), parse_mode='html', reply_markup=btn)
@@ -526,19 +637,19 @@ def rules(message):
 	bot.send_message(message.chat.id, "В начале игры каждый получает в личном диалоге со мной сообщение с локацией или узнает, что он шпион!\nЦель игры:\n    Игрокам необходимо выявить шпиона.\n    Шпиону необходимо определить локацию.\n\nОбсуждения в беседе приветствуются!🤔")
 
 def admword(message):
-	if message.from_user.id == 144589481 and getGroupbByUsersIDInGame(144589481) != None:
-		bot.send_message(144589481, getGroupsWord(getGroupbByUsersIDInGame(144589481)))
+	if isMyAdmin(message.chat.id) and getGroupbByUsersIDInGame(message.chat.id) != None:
+		bot.send_message(message.chat.id, getGroupsWord(getGroupbByUsersIDInGame(message.chat.id)))
 
 def addword(message):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-	cursor = conn.cursor()
-	cursor.execute("SELECT MAX(num) FROM words")
-	maxNum = cursor.fetchone()[0]
-	print(maxNum)
-	cursor.execute("INSERT INTO words (num,word) VALUES ('%d','%s')" % (maxNum + 1, message.text))
-	conn.commit()
-	conn.close()
-	bot.send_message(message.from_user.id, "Добавлено!")
+	if isMyAdmin(message.chat.id):
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT MAX(num) FROM words")
+		maxNum = cursor.fetchone()[0]
+		cursor.execute("INSERT INTO words (num,word) VALUES ('%d','%s')" % (maxNum + 1, message.text))
+		conn.commit()
+		conn.close()
+		bot.send_message(message.from_user.id, "Добавлено!")
 
 # @bot.message_handler(commands=['answer'])
 def answer(message):
@@ -550,6 +661,17 @@ def answer(message):
 		else:
 			bot.send_message(message.from_user.id, "Ты не шпион или игра еще не началась!")
 
+def settings(message):
+	if message.chat.type == 'private' and isCreatorForSettings(message.chat.id):
+		key = types.InlineKeyboardMarkup()
+		for i in getCreatorsGroups(message.chat.id):
+			key.add(types.InlineKeyboardButton(text=bot.get_chat(i[0]).title, callback_data=str(i[0]) + "settings"))
+		bot.send_message(message.chat.id, "Выберите чат", reply_markup=key)
+	elif message.chat.type == 'private':
+		bot.send_message(message.chat.id, "Вы не являетесь создателем какой-либо беседы!")
+	else:
+		bot.send_message(message.chat.id, "Команда используется только создателем беседы в личном чате!")
+
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
 	print(c.data)
@@ -560,6 +682,8 @@ def inline(c):
 	# 	game(c.message)
 	if c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
 		addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
+		if addReturn == 3:
+			bot.delete_message(c.message.chat.id, c.message.message_id)
 		if addReturn == 1:
 			return
 		elif addReturn == 2:
@@ -569,9 +693,20 @@ def inline(c):
 			return
 		inviteID(c.message.chat.id, c.message.message_id)
 		editInvite(c.message.chat.id)
-		# Добавить случай, когда человек лишний
+	if c.data == "groupsettings":
+		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
+	if "settings" in c.data:
+		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
 	if "poll" in c.data:
 		bot.edit_message_text("Вы сделали свой выбор!", c.message.chat.id, c.message.message_id)
 		pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
+	if "maxgamers" in c.data:
+		changeMaxGamers(c.message, c.data, c.message.chat.id, c.message.message_id)
+	# if "time" in c.data:
 
+
+# try: 
+#     bot.polling(none_stop=True, interval=0)
+# except Exception:
+#     pass
 bot.polling(none_stop=True)
