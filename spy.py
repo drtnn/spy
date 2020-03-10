@@ -281,7 +281,7 @@ def gameStarting(group_id):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Слово тут!", url="t.me/findspy_bot"))
 		bot.send_message(group_id, "Начало игры!", reply_markup=key)
-		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, 240))###################################################################################################################
+		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, getTimeForGame(group_id)))###################################################################################################################
 		t.start()
 		# t.join()
 		# t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(group_id), args=(group_id, 120)))###################################################################################################################
@@ -307,7 +307,7 @@ def whenToStartPoll(group_id, endTime):
 		timing += 3
 		print("whenToStartPoll")
 	individualPoll(group_id)
-	t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(group_id)), args=(group_id, 120))###################################################################################################################
+	t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(group_id)), args=(group_id, getTimeAfterPoll(group_id)))###################################################################################################################
 	t.start()
 
 def whenToEndInvite(group_id, endTime):
@@ -547,6 +547,12 @@ def maxGamers(message, old_message_id, group_id):
 	else:
 		changeToSettings("Число игроков не было изменено", message.chat.id, old_message_id)
 
+def changeMaxTime(message, data, user_id, message_id):
+	group_id = getNumberFromCall(data, 't')
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton(text="5", callback_data=str(group_id) + "chtime"), types.InlineKeyboardButton(text="10", callback_data=str(group_id) + "chtime"), types.InlineKeyboardButton(text="15", callback_data=str(group_id) + "chtime"))
+	bot.edit_message_text("Выберите длительность игры", user_id, message_id, reply_markup=key)
+
 def changeToSettings(text, user_id, message_id):
 	key = types.InlineKeyboardMarkup()
 	for i in getCreatorsGroups(user_id):
@@ -560,7 +566,16 @@ def getTimeForGame(group_id):
 	row = cursor.fetchone()
 	conn.close()
 	if row != None:
-		return ((row[0]/2) * 60)
+		return row[0] * 40
+
+def getTimeAfterPoll(group_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT time FROM settings WHERE grpID = '%d'" % (group_id))
+	row = cursor.fetchone()
+	conn.close()
+	if row != None:
+		return row[0] * 20
 
 ###########################
 ###### Group Handler ######
@@ -609,7 +624,7 @@ def start(message):
 def startPollNow(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getPollStatus(message.chat.id) == 0 and getSpyID(message.chat.id) != None:
 		individualPoll(message.chat.id)
-		t = threading.Thread(target=whenToEndPoll, name="Thread2Poll{}".format(str(message.chat.id), args=(message.chat.id, 120)))
+		t = threading.Thread(target=whenToEndPoll, name="Thread2Poll{}".format(str(message.chat.id), args=(message.chat.id, getTimeAfterPoll(message.chat.id))))
 		t.start()
 
 # @bot.message_handler(commands=['game'])
@@ -623,7 +638,7 @@ def game(message):
 			btn.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
 			bot.send_message(message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(message.from_user.id, message.from_user.first_name), parse_mode='html', reply_markup=btn)
 			return
-		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 30))###################################################################################################################
+		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 45))###################################################################################################################
 		t.start()
 
 # @bot.message_handler(commands=['end'])
@@ -680,7 +695,7 @@ def inline(c):
 			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
 	# if c.data == 'game':
 	# 	game(c.message)
-	if c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
+	elif c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
 		addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
 		if addReturn == 3:
 			bot.delete_message(c.message.chat.id, c.message.message_id)
@@ -693,16 +708,20 @@ def inline(c):
 			return
 		inviteID(c.message.chat.id, c.message.message_id)
 		editInvite(c.message.chat.id)
-	if c.data == "groupsettings":
+	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
-	if "settings" in c.data:
+	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
-	if "poll" in c.data:
+	elif "poll" in c.data:
 		bot.edit_message_text("Вы сделали свой выбор!", c.message.chat.id, c.message.message_id)
 		pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
-	if "maxgamers" in c.data:
+	elif "maxgamers" in c.data:
 		changeMaxGamers(c.message, c.data, c.message.chat.id, c.message.message_id)
-	# if "time" in c.data:
+	# elif "chtime" in c.data:
+	# 	print(c.reply_markup.inline_keyboard)
+	elif "time" in c.data:
+		changeMaxTime(c.message, c.data, c.message.chat.id, c.message.message_id)
+
 
 
 # try: 
