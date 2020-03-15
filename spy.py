@@ -345,6 +345,19 @@ def getNumberFromCall(data, letter):
 			num += i
 	return int(num)
 
+def getNumberFromLetterToCall(data, fromLetter, toLetter):
+	num = ""
+	n = False
+	for i in data:
+		if n == False and i == fromLetter:
+			n = True
+		elif n == True:
+			if i == toLetter:
+				break
+			else:
+				num += i
+	return int(num)
+
 def pollResult(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
@@ -550,7 +563,7 @@ def maxGamers(message, old_message_id, group_id):
 def changeMaxTime(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 't')
 	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton(text="5", callback_data=str(group_id) + "chtime"), types.InlineKeyboardButton(text="10", callback_data=str(group_id) + "chtime"), types.InlineKeyboardButton(text="15", callback_data=str(group_id) + "chtime"))
+	key.add(types.InlineKeyboardButton(text="5", callback_data="5_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="10", callback_data="10_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="15", callback_data="15_" + str(group_id) + "chtime"))
 	bot.edit_message_text("Выберите длительность игры", user_id, message_id, reply_markup=key)
 
 def changeToSettings(text, user_id, message_id):
@@ -717,8 +730,16 @@ def inline(c):
 		pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
 	elif "maxgamers" in c.data:
 		changeMaxGamers(c.message, c.data, c.message.chat.id, c.message.message_id)
-	# elif "chtime" in c.data:
-	# 	print(c.reply_markup.inline_keyboard)
+	elif "chtime" in c.data:
+		newTime = getNumberFromCall(c.data, "_")
+		group_id = getNumberFromLetterToCall(c.data, "_", "c")
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("UPDATE settings SET time = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
+		row = cursor.fetchall()
+		conn.commit()
+		conn.close()
+		changeToSettings("Максимальное время игры изменено.", c.message.chat.id, c.message.message_id)
 	elif "time" in c.data:
 		changeMaxTime(c.message, c.data, c.message.chat.id, c.message.message_id)
 
