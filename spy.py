@@ -43,9 +43,9 @@ def newGame(group_id, user_id, name):
 	if numFromSettings != None and gamersFromGameRoom != None:
 		if len(gamersFromGameRoom) == numFromSettings:
 			conn.close()
-			return 
+			return
 	cursor.execute("INSERT INTO gameRoom (grpID,userID, name) VALUES ('%d','%d', '%s')" % (group_id, user_id, name))
-	conn.commit()	
+	conn.commit()
 	conn.close()
 	return 0
 
@@ -69,9 +69,9 @@ def addUserToGame(group_id, user_id, name):
 	if numFromSettings != None and gamersFromGameRoom != None:
 		if len(gamersFromGameRoom) == numFromSettings:
 			conn.close()
-			return 
+			return
 	cursor.execute("INSERT INTO gameRoom (grpID,userID, name) VALUES ('%d','%d', '%s')" % (group_id, user_id, name))
-	conn.commit()	
+	conn.commit()
 	conn.close()
 	return 0
 
@@ -96,7 +96,7 @@ def addUser(user_id):
 		conn.close()
 		return 1
 	cursor.execute("INSERT INTO users (userID) VALUES ('%d')" % (user_id))
-	conn.commit()	
+	conn.commit()
 	conn.close()
 	return 0
 
@@ -108,7 +108,7 @@ def addGroup(group_id):
 		conn.close()
 		return 1
 	cursor.execute("INSERT INTO groups (grpID) VALUES ('%d')" % (group_id))
-	conn.commit()	
+	conn.commit()
 	conn.close()
 	return 0
 
@@ -127,7 +127,7 @@ def givingRoles(group_id):
 			cursor.execute("INSERT INTO spyID (grpID,userID) VALUES ('%d','%d')" % (group_id, i[0]))
 			continue
 		cursor.execute("INSERT INTO pieceID (grpID,userID) VALUES ('%d','%d')" % (group_id, i[0]))
-	conn.commit()	
+	conn.commit()
 	conn.close()
 	return 0
 
@@ -154,7 +154,7 @@ def admSettings(group_id):
 			conn.close()
 			return 0
 	return 1
-	
+
 def getCreator(group_id):
 	adms = bot.get_chat_administrators(group_id)
 	for i in adms:
@@ -188,7 +188,7 @@ def inviteID(group_id, invite_id):
 	if cursor.fetchone() != None:
 		return 1
 	cursor.execute("INSERT INTO messages (grpID,inviteID,poll) VALUES ('%d','%d','%d')" % (group_id, invite_id, 0))
-	conn.commit()	
+	conn.commit()
 	conn.close()
 	return 0
 
@@ -551,7 +551,6 @@ def maxGamers(message, old_message_id, group_id):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
 		cursor.execute("UPDATE settings SET gamers = '%d' WHERE grpID = '%d'" % (int(message.text), group_id))
-		row = cursor.fetchall()
 		conn.commit()
 		conn.close()
 		changeToSettings("Максимальное число игроков изменено", message.chat.id, old_message_id)
@@ -604,7 +603,7 @@ def AllHandler(message):
 		start(message)
 	elif message.text == '/end' or message.text == '/end@findspy_bot':
 		end(message)
-	elif message.text == '/startpoll@findspy_bot':
+	elif message.text == '/startpoll@findspy_bot' or message.text == '/startpoll':
 		startPollNow(message)
 	elif message.text == '/rules' or message.text == '/rules@findspy_bot':
 		rules(message)
@@ -616,6 +615,8 @@ def AllHandler(message):
 		admword(message)
 	elif message.text == '/settings' or message.text == '/settings@findspy_bot':
 		settings(message)
+	elif message.text == '/help' or message.text == '/help@findspy_bot':
+		help(message)
 	elif message.text == '/addword' and isMyAdmin(message.chat.id):
 		bot.send_message(message.chat.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
@@ -631,7 +632,12 @@ def start(message):
 		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион, для начала игры дай мне права администратора и перейдите в лс к боту!", reply_markup=key)
 	if message.chat.type == 'private':
 		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион. Рад, что мы теперь знакомы!")
+		help(message)
 		addUser(message.from_user.id)
+
+
+def help(message):
+	bot.send_message(message.chat.id, "<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу и написать команду /start\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".", parse_mode='html')
 
 # @bot.message_handler(commands=['startpoll'])
 def startPollNow(message):
@@ -662,7 +668,7 @@ def end(message):
 
 # @bot.message_handler(commands=['rules'])
 def rules(message):
-	bot.send_message(message.chat.id, "В начале игры каждый получает в личном диалоге со мной сообщение с локацией или узнает, что он шпион!\nЦель игры:\n    Игрокам необходимо выявить шпиона.\n    Шпиону необходимо определить локацию.\n\nОбсуждения в беседе приветствуются!🤔")
+	bot.send_message(message.chat.id, "<b>Правила</b>В игре участвуют местные и шпионы.\nЦель игры:\n    Местным необходимо выявить шпиона.\n    Шпиону необходимо определить локацию.\nВ начале игры в личном диалоге местным будет сообщена локация, Шпиону - нет.\nЗадавайте друг другу вопросы, связанные с данной локацией, чтобы вычислить шпиона. Например: \"Когда ты был последний раз в этом месте?\"\nПраво задать следующий вопрос переходит отвечающему.\nВы шпион и догадываетесь о какой локации идет речь? Переходите ко мне в личный диалог, жмите /answer и отправляйте ваше слово.\nЕсли же вы местный и сочли чьи-то ответы слишком подозрительными, то вы можете дождать голосования и выбрать подозреваемого, либо начать голосование прямо сейчас с помощью команды /startpoll.\nИзменить количество игроков и время игры может только создатель беседы в личном диалоге по команде /settings.",parse_mode='html')
 
 def admword(message):
 	if isMyAdmin(message.chat.id) and getGroupbByUsersIDInGame(message.chat.id) != None:
@@ -736,7 +742,6 @@ def inline(c):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
 		cursor.execute("UPDATE settings SET time = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
-		row = cursor.fetchall()
 		conn.commit()
 		conn.close()
 		changeToSettings("Максимальное время игры изменено.", c.message.chat.id, c.message.message_id)
@@ -745,7 +750,7 @@ def inline(c):
 
 
 
-# try: 
+# try:
 #     bot.polling(none_stop=True, interval=0)
 # except Exception:
 #     pass
