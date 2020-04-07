@@ -614,15 +614,36 @@ def AllHandler(message):
 		game(message)
 	elif message.text == '/answer' or message.text == '/answer@findspy_bot':
 		answer(message)
-	elif message.text == '/admword':
+	elif message.text == '/admword' and message.chat.type == 'private':
 		admword(message)
 	elif message.text == '/settings' or message.text == '/settings@findspy_bot':
 		settings(message)
 	elif message.text == '/help' or message.text == '/help@findspy_bot':
 		help(message)
-	elif message.text == '/addword' and isMyAdmin(message.chat.id):
-		bot.send_message(message.chat.id, "Присылай новое слово!")
+	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		bot.send_message(message.from_user.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
+	elif message.text == '/showords' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT word FROM words")
+		word = cursor.fetchone()[0]
+		text = ""
+		while word != None:
+			text += (word + "\n")
+			word = cursor.fetchone()[0]
+		conn.close()
+		bot.send_message(message.from_user.id, "<b>Список слов</b>" + text, parse_mode="html")
+	elif message.text == '/delword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		bot.send_message(message.from_user.id, "<b>Присылай слово</b>", parse_mode="html")
+		bot.register_next_step_handler(message, delword)
+	elif message.text == '/countgamers' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT COUNT(*) FROM words")
+		gamers = cursor.fetchone()
+		conn.close()
+		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + "</b>", parse_mode="html")
 
 # @bot.message_handler(commands=['start'])
 def start(message):
@@ -676,11 +697,11 @@ def rules(message):
 	bot.send_message(message.chat.id, '<b>Правила</b>В игре участвуют местные и шпионы.\nЦель игры:\n* Местным необходимо выявить шпиона.\n* Шпиону необходимо определить локацию.\nВ начале игры в личном диалоге местным будет сообщена локация, Шпиону - нет.\nЗадавайте друг другу вопросы, связанные с данной локацией, чтобы вычислить шпиона. Например: "Когда ты был последний раз в этом месте?"\nПраво задать следующий вопрос переходит отвечающему.\nВы шпион и догадываетесь о какой локации идет речь? Переходите ко мне в личный диалог, жмите /answer и отправляйте ваше слово.\nЕсли же вы местный и сочли чьи-то ответы слишком подозрительными, то вы можете дождаться голосования и выбрать подозреваемого, либо начать голосование прямо сейчас с помощью команды /startpoll.\nИ помните, одна игра - одно голосование!\n\nИзменить количество игроков и время игры может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html')
 
 def admword(message):
-	if isMyAdmin(message.chat.id) and getGroupbByUsersIDInGame(message.chat.id) != None:
+	if isMyAdmin(message.from_user.id) and getGroupbByUsersIDInGame(message.chat.id) != None:
 		bot.send_message(message.chat.id, getGroupsWord(getGroupbByUsersIDInGame(message.chat.id)))
 
 def addword(message):
-	if isMyAdmin(message.chat.id):
+	if isMyAdmin(message.from_user.id):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
 		cursor.execute("SELECT MAX(num) FROM words")
@@ -689,6 +710,21 @@ def addword(message):
 		conn.commit()
 		conn.close()
 		bot.send_message(message.from_user.id, "Добавлено!")
+
+def delword(message):
+	if isMyAdmin(message.from_user.id):
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT word FROM words WHERE word = '%s'" % (message.text))
+		row = cursor.fetchone()
+		if row[0] == None:
+			bot.send_message(message.from_user.id, "Нет такого слова!")
+			conn.close()
+		else:
+			cursor.execute("DELETE FROM words WHERE word = '%s'" % (message.text))
+			conn.commit()
+			conn.close()
+			bot.send_message(message.from_user.id, "Удалено!")
 
 # @bot.message_handler(commands=['answer'])
 def answer(message):
