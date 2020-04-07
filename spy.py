@@ -451,22 +451,25 @@ def getNameFromGameRoom(user_id):
 		return row[0]
 
 def wordsPercent(string1, string2):
-    s1 = string1.lower()
-    s2 = string2.lower()
-    text = ""
+	s1 = string1.lower()
+	s2 = string2.lower()
+	text = ""
+	percent = 0
 
-    if len(s2)/len(s1) * 100 <= 100:
-
-        text = "Совпадение по длине " + str(len(s2)/len(s1) * 100)+'%\n'
-    else:
-        text =  "Совпадение по длине " + str(len(s1)/len(s2) * 100)+'%\n'
-    if len(s1) > len(s2):
-        s1, s2 = s2, s1
-    p = 0
-    for i in range(len(s1)):
-        if s1[i] == s2[i] and s1[i].isalpha() and s2[i].isalpha():
-            p += 1
-    return text + "Совпадение по буквам " + str(int(p/len(s1)*100))+'%'
+	if len(s2)/len(s1) * 100 <= 100:
+		percent = len(s2)/len(s1) * 100
+		text = "Совпадение по длине " + str(int(len(s2)/len(s1) * 100))+'%'
+	else:
+		percent = len(s1)/len(s2) * 100
+		text =  "Совпадение по длине " + str(int(len(s1)/len(s2) * 100))+'%'
+	if percent == 100:
+		p = 0
+		for i in range(len(s1)):
+			if s1[i] == s2[i] and ((s1[i].isalpha() and s2[i].isalpha()) or s1[i] == " "):
+				p += 1
+		return text + "\nСовпадение по буквам " + str(int(p/len(s1)*100))+'%'
+	else:
+		return text
 
 def getGroupsWord(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
