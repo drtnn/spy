@@ -627,15 +627,16 @@ def AllHandler(message):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
 		cursor.execute("SELECT word FROM words")
-		word = cursor.fetchone()[0]
+		word = cursor.fetchone()
 		text = ""
 		while word != None:
-			text += (word + "\n")
-			word = cursor.fetchone()[0]
+			text += (word[0] + "\n")
+			word = cursor.fetchone()
 		conn.close()
-		bot.send_message(message.from_user.id, "<b>Список слов</b>" + text, parse_mode="html")
+		print(text)
+		bot.send_message(message.from_user.id, "<b>Список слов\n</b>" + text, parse_mode="html")
 	elif message.text == '/delword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		bot.send_message(message.from_user.id, "<b>Присылай слово</b>", parse_mode="html")
+		bot.send_message(message.from_user.id, "Присылай слово", parse_mode="html")
 		bot.register_next_step_handler(message, delword)
 	elif message.text == '/countgamers' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -643,7 +644,7 @@ def AllHandler(message):
 		cursor.execute("SELECT COUNT(*) FROM words")
 		gamers = cursor.fetchone()
 		conn.close()
-		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + "</b>", parse_mode="html")
+		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человека</b>", parse_mode="html")
 
 # @bot.message_handler(commands=['start'])
 def start(message):
