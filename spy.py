@@ -637,7 +637,10 @@ def start(message):
 
 
 def help(message):
-	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу и написать команду /start\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".', parse_mode='html')
+	key = types.InlineKeyboardMarkup()
+	if message.chat.type == 'private':
+		key.add(types.InlineKeyboardButton("Обратная связь", url="t.me/drtagram"))
+	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу и написать команду /start\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".', parse_mode='html', reply_markup="key")
 
 # @bot.message_handler(commands=['startpoll'])
 def startPollNow(message):
