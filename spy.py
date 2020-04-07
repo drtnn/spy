@@ -640,7 +640,7 @@ def AllHandler(message):
 	elif message.text == '/countgamers' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
-		cursor.execute("SELECT COUNT(*) FROM words")
+		cursor.execute("SELECT COUNT(*) FROM users")
 		gamers = cursor.fetchone()
 		conn.close()
 		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человека</b>", parse_mode="html")
