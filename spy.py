@@ -633,7 +633,6 @@ def AllHandler(message):
 			text += (word[0] + "\n")
 			word = cursor.fetchone()
 		conn.close()
-		print(text)
 		bot.send_message(message.from_user.id, "<b>Список слов\n</b>" + text, parse_mode="html")
 	elif message.text == '/delword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Присылай слово", parse_mode="html")
@@ -718,7 +717,7 @@ def delword(message):
 		cursor = conn.cursor()
 		cursor.execute("SELECT word FROM words WHERE word = '%s'" % (message.text))
 		row = cursor.fetchone()
-		if row[0] == None:
+		if row == None:
 			bot.send_message(message.from_user.id, "Нет такого слова!")
 			conn.close()
 		else:
