@@ -222,6 +222,7 @@ def getNumberOfGamersByGroupId(group_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT gamers FROM settings WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
+	print("grpid = " + str(group_id))
 	conn.close()
 	if row != None:
 		return row[0]
@@ -311,6 +312,10 @@ def whenToStartPoll(group_id, endTime):
 	t.start()
 
 def whenToEndInvite(group_id, endTime):
+	print(endTime)
+	print(len(getGamersByGroupId(group_id)))
+	print(getNumberOfGamersByGroupId(group_id))
+	print(bot.get_chat_members_count(group_id) - 1)
 	timing = 0
 	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupId(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1:
 		time.sleep(3)
