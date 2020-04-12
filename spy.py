@@ -321,7 +321,7 @@ def whenToEndInvite(group_id, endTime):
 		time.sleep(3)
 		timing += 3
 		print("whenToEndInvite")
-	gameStarting(group_id)
+	# gameStarting(group_id)
 
 def individualPoll(group_id):
 	if getPollStatus(group_id) == 1:
@@ -690,6 +690,9 @@ def game(message):
 			return
 		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 45))###################################################################################################################
 		t.start()
+		t.join()
+		gameStarting(message.chat.id)
+
 
 # @bot.message_handler(commands=['end'])
 def end(message):
@@ -764,6 +767,7 @@ def inline(c):
 		addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
 		if addReturn == 3:
 			bot.delete_message(c.message.chat.id, c.message.message_id)
+			return
 		if addReturn == 1:
 			return
 		elif addReturn == 2:
