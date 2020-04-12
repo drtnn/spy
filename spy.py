@@ -149,7 +149,7 @@ def admSettings(group_id):
 		if i.status == 'creator':
 			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 			cursor = conn.cursor()
-			cursor.execute("INSERT INTO settings (grpID, userID, time, gamers) VALUES ('%d', '%d', '%d', '%d')" % (group_id, i.user.id, 5, 12))
+			cursor.execute("INSERT INTO settings (grpID, userID, time, gamers, inviteTime) VALUES ('%d', '%d', '%d', '%d', '%d')" % (group_id, i.user.id, 5, 12, 45))
 			conn.commit()
 			conn.close()
 			return 0
@@ -216,6 +216,15 @@ def getGamersByGroupId(group_id):
 	row = cursor.fetchall()
 	conn.close()
 	return row
+
+def getInviteTime(group_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT inviteTime FROM settings WHERE grpID = '%d'" % (group_id))
+	row = cursor.fetchone()
+	conn.close()
+	if row != None:
+		return row[0]
 
 def getNumberOfGamersByGroupId(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -312,14 +321,16 @@ def whenToStartPoll(group_id, endTime):
 	t.start()
 
 def whenToEndInvite(group_id, endTime):
-	print(endTime)
-	print(len(getGamersByGroupId(group_id)))
-	print(getNumberOfGamersByGroupId(group_id))
-	print(bot.get_chat_members_count(group_id) - 1)
+	# print(endTime)
+	# print(len(getGamersByGroupId(group_id)))
+	# print(getNumberOfGamersByGroupId(group_id))
+	# print(bot.get_chat_members_count(group_id) - 1)
 	timing = 0
 	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupId(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1:
 		time.sleep(3)
 		timing += 3
+		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
+			bot.send_message(group_id, "<i>До окончания регистрации осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
 		print("whenToEndInvite")
 	# gameStarting(group_id)
 
@@ -545,6 +556,7 @@ def editToGroupSettings(data, user_id, message_id):
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Изменить максимальное число игроков", callback_data=str(group_id) + "maxgamers"))
 	key.add(types.InlineKeyboardButton("Изменить время игры", callback_data=str(group_id) + "time"))
+	key.add(types.InlineKeyboardButton("Изменить время регистрации", callback_data=str(group_id) + "inviting"))
 	key.add(types.InlineKeyboardButton("⬅️Обратно в выбор группы", callback_data="groupsettings"))
 	bot.edit_message_text("Настройки", user_id, message_id, reply_markup=key)
 
@@ -567,10 +579,16 @@ def maxGamers(message, old_message_id, group_id):
 	else:
 		changeToSettings("Число игроков не было изменено", message.chat.id, old_message_id)
 
+def changeInviteTime(message, data, user_id, message_id):
+	group_id = getNumberFromCall(data, 'i')
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton(text="45 секунд", callback_data="45_" + str(group_id) + "chinvite"), types.InlineKeyboardButton(text="1 минута", callback_data="60_" + str(group_id) + "chinvite"), types.InlineKeyboardButton(text="2 минуты", callback_data="120_" + str(group_id) + "chinvite"))
+	bot.edit_message_text("Выберите длительность регистрации", user_id, message_id, reply_markup=key)
+
 def changeMaxTime(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 't')
 	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton(text="5", callback_data="5_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="10", callback_data="10_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="15", callback_data="15_" + str(group_id) + "chtime"))
+	key.add(types.InlineKeyboardButton(text="5 минут", callback_data="5_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="10 минут", callback_data="10_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="15 минут", callback_data="15_" + str(group_id) + "chtime"))
 	bot.edit_message_text("Выберите длительность игры", user_id, message_id, reply_markup=key)
 
 def changeToSettings(text, user_id, message_id):
@@ -688,7 +706,7 @@ def game(message):
 			btn.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
 			bot.send_message(message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(message.from_user.id, message.from_user.first_name), parse_mode='html', reply_markup=btn)
 			return
-		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, 45))###################################################################################################################
+		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, getInviteTime(message.chat.id)))###################################################################################################################
 		t.start()
 		t.join()
 		gameStarting(message.chat.id)
@@ -696,7 +714,7 @@ def game(message):
 
 # @bot.message_handler(commands=['end'])
 def end(message):
-	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and message.from_user.id in getAdmins(message.chat.id):
+	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and (message.from_user.id in getAdmins(message.chat.id) or isMyAdmin(message.from_user.id)):
 		bot.send_message(message.chat.id, "Игра окончена!")
 		endGame(message.chat.id)
 
@@ -786,6 +804,17 @@ def inline(c):
 		pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
 	elif "maxgamers" in c.data:
 		changeMaxGamers(c.message, c.data, c.message.chat.id, c.message.message_id)
+	elif "inviting" in c.data:
+		changeInviteTime(c.message, c.data, c.message.chat.id, c.message.message_id)
+	elif "chinvite" in c.data:
+		newTime = getNumberFromCall(c.data, "_")
+		group_id = getNumberFromLetterToCall(c.data, "_", "c")
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("UPDATE settings SET inviteTime = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
+		conn.commit()
+		conn.close()
+		changeToSettings("Время регистрации изменено.", c.message.chat.id, c.message.message_id)
 	elif "chtime" in c.data:
 		newTime = getNumberFromCall(c.data, "_")
 		group_id = getNumberFromLetterToCall(c.data, "_", "c")
