@@ -289,8 +289,9 @@ def gameStarting(group_id):
 			return 1
 		givingWords(group_id)
 		key = types.InlineKeyboardMarkup()
-		key.add(types.InlineKeyboardButton("Слово тут!", url="t.me/findspy_bot"))
-		bot.send_message(group_id, "Начало игры!", reply_markup=key)
+		key.add(types.InlineKeyboardButton("Локация здесь", url="t.me/findspy_bot"))
+		random_user_id = whoIsTheFirst(group_id)
+		bot.send_message(group_id, "Итак, первым поиски шпиона начинает <a href='tg://user?id={}'>{}</a>.\n\n<i>Выберите игрока и задайте ему вопрос, следующий вопрос задает предыдущий ответивший.</i>".format(random_user_id, getNameFromGameRoom(random_user_id)), reply_markup=key, parse_mode='html')
 		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, getTimeForGame(group_id)))###################################################################################################################
 		t.start()
 		# t.join()
@@ -302,11 +303,27 @@ def gameStarting(group_id):
 		endGame(group_id)
 		return 1
 
+def whoIsTheFirst(group_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT userID FROM gameRoom WHERE grpID = '%d'" % (group_id))
+	row = cursor.fetchall()
+	numOfGamers = len(row)
+	randomNumber = random.randint(0, numOfGamers - 1)
+	conn.close()
+	if row != None:
+		return row[randomNumber][0]
+	else:
+		return None
+
+
 def whenToEndPoll(group_id, endTime):
 	timing = 0
 	while timing <= endTime and len(pollResult(group_id)) < len(getGamersByGroupId(group_id)):
 		time.sleep(3)
 		timing += 3
+		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
+			bot.send_message(group_id, "<i>До окончания голосования осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
 		print("whenToEndPoll")
 	startGameResult(group_id)
 
@@ -315,6 +332,8 @@ def whenToStartPoll(group_id, endTime):
 	while timing <= endTime and gameIsExisted(group_id) == 0 and getPollStatus(group_id) != 1:
 		time.sleep(3)
 		timing += 3
+		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
+			bot.send_message(group_id, "<i>До начала голосования осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
 		print("whenToStartPoll")
 	individualPoll(group_id)
 	t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(group_id)), args=(group_id, getTimeAfterPoll(group_id)))###################################################################################################################
@@ -326,7 +345,7 @@ def whenToEndInvite(group_id, endTime):
 	# print(getNumberOfGamersByGroupId(group_id))
 	# print(bot.get_chat_members_count(group_id) - 1)
 	timing = 0
-	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupId(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1:
+	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupId(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1 and gameIsExisted(group_id) == 0:
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
@@ -615,6 +634,17 @@ def getTimeAfterPoll(group_id):
 	if row != None:
 		return row[0] * 20
 
+def feedback(message):
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Ответить {}".format(message.from_user.first_name), callback_data=str(message.from_user.id) + "answer2user"))
+	bot.send_message(144589481, "<i>Feedback</i>\n\n{}".format(message.text), reply_markup=key, parse_mode='html')
+
+def answerToUser(message, data):
+	user_id = getNumberFromCall(data, 'a')
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
+	bot.send_message(user_id, "<i>Обратная связь</i>\n\n{}".format(message.text), reply_markup=key, parse_mode='html')
+
 ###########################
 ###### Group Handler ######
 ###########################
@@ -643,6 +673,19 @@ def AllHandler(message):
 		settings(message)
 	elif message.text == '/help' or message.text == '/help@findspy_bot':
 		help(message)
+	elif message.text == '/leave' or message.text == '/leave@findspy_bot':
+		leave(message)
+	elif message.text == '/getgroups' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT grpID FROM groups")
+		word = cursor.fetchone()
+		text = ""
+		while word != None:
+			text += (bot.get_chat(word[0]).title + "\n")
+			word = cursor.fetchone()
+		conn.close()
+		bot.send_message(message.from_user.id, "<b>Список групп\n</b>" + text, parse_mode="html")
 	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
@@ -685,7 +728,8 @@ def start(message):
 
 def help(message):
 	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton("Обратная связь", url="t.me/drtagram"))
+	if message.chat.type == 'private':
+		key.add(types.InlineKeyboardButton("Обратная связь", callback_data="feedback"))
 	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу и написать команду /start\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".', parse_mode='html', reply_markup=key)
 
 # @bot.message_handler(commands=['startpoll'])
@@ -709,7 +753,8 @@ def game(message):
 		t = threading.Thread(target=whenToEndInvite, name="Thread4Invite{}".format(str(message.chat.id)), args=(message.chat.id, getInviteTime(message.chat.id)))###################################################################################################################
 		t.start()
 		t.join()
-		gameStarting(message.chat.id)
+		if gameIsExisted(message.chat.id) == 0:
+			gameStarting(message.chat.id)
 
 
 # @bot.message_handler(commands=['end'])
@@ -736,6 +781,27 @@ def addword(message):
 		conn.commit()
 		conn.close()
 		bot.send_message(message.from_user.id, "Добавлено!")
+
+def leave(message):
+	if gameIsExisted(message.chat.id) == 0 and (message.chat.type == 'supergroup' or message.chat.type == 'group'):
+		spyID = getSpyID(message.chat.id)
+		if spyID == message.from_user.id:
+			bot.send_message(message.chat.id, "<i>Игра завершена.</i>\n\n    Шпион <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+			endGame(message.chat.id)
+		elif spyID == None and getNumberOfGamersByGroupId(message.chat.id) > 1:
+			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+			cursor = conn.cursor()
+			cursor.execute("DELETE FROM gameroom WHERE userID = '%d'" % (message.from_user.id))
+			conn.commit()
+			conn.close()
+			editInvite(message.chat.id)
+			bot.send_message(message.chat.id, "<i><a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+		elif spyID == None and getNumberOfGamersByGroupId(message.chat.id) == 1:
+			endGame(message.chat.id)
+			bot.send_message(message.chat.id, "<i><i>Игра завершена.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+		elif spyID != message.from_user.id and getNumberOfGamersByGroupId(message.chat.id) == 4:
+			bot.send_message(message.chat.id, "<i>Недостаточно игроков для продолжения игры.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+			endGame(message.chat.id)
 
 def delword(message):
 	if isMyAdmin(message.from_user.id):
@@ -797,6 +863,10 @@ def inline(c):
 		editInvite(c.message.chat.id)
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
+	elif c.data == "feedback":
+		bot.register_next_step_handler(c.message, feedback)
+	elif "answer2user" in c.data:
+		bot.register_next_step_handler(c.message, answerToUser, c.data)
 	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
 	elif "poll" in c.data:
