@@ -651,10 +651,14 @@ def showgameroom(message, message_id):
 	cursor.execute("SELECT * FROM gameRoom")
 	word = cursor.fetchone()
 	text = ""
-	if word == None or word[0] == None:
-		bot.send_message(message.chat.id, "<b>gameroom is clean\n</b>", parse_mode="html")
-		return
 	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Update", callback_data="updategameroom"))
+	if (word == None or word[0] == None) and message_id == 0:
+		bot.send_message(message.chat.id, "<b>gameroom is clean\n</b>", reply_markup=key, parse_mode="html")
+		return
+	elif word == None or word[0] == None:
+		bot.edit_message_text("<b>gameroom is clean\n</b>", message.chat.id, message_id=message_id, reply_markup=key, parse_mode="html")
+		return
 	while word != None:
 		text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
 		key.add(types.InlineKeyboardButton(word[0], callback_data=str(word[0]) + "cleancache"))
@@ -891,6 +895,8 @@ def inline(c):
 	elif c.data == "feedback":
 		bot.send_message(c.message.chat.id, "Напишите мне сообщение, я передам его администратору.")
 		bot.register_next_step_handler(c.message, feedback)
+	elif c.data == "updategameroom":
+		showgameroom(c.message, c.message.message_id)
 	elif "answer2user" in c.data:
 		bot.send_message(c.message.chat.id, "Ответ пользователю.")
 		bot.register_next_step_handler(c.message, answerToUser, c.data)
