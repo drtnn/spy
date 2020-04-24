@@ -716,6 +716,9 @@ def AllHandler(message):
 		cursor.execute("SELECT * FROM gameroom")
 		word = cursor.fetchone()
 		text = ""
+		if word == None or word[0] == None:
+			bot.send_message(message.from_user.id, "<b>gameroom is clean\n</b>", parse_mode="html")
+			return
 		key = types.InlineKeyboardMarkup()
 		while word != None:
 			text += word[0] + '_' + word[1] + '_' + word[2] + "\n"
@@ -877,8 +880,10 @@ def inline(c):
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
 	elif c.data == "feedback":
+		bot.send_message(c.message.from_user.id, "Напишите мне сообщение, я передам его администратору.")
 		bot.register_next_step_handler(c.message, feedback)
 	elif "answer2user" in c.data:
+		bot.send_message(c.message.from_user.id, "Ответ пользователю.")
 		bot.register_next_step_handler(c.message, answerToUser, c.data)
 	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
