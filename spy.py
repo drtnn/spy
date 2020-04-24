@@ -724,7 +724,7 @@ def AllHandler(message):
 		key = types.InlineKeyboardMarkup()
 		while word != None:
 			text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
-			key.add(types.InlineKeyboardButton(word[1], callback_data=word[1] + "cleancache"))
+			key.add(types.InlineKeyboardButton(word[0], callback_data=str(word[0]) + "cleancache"))
 			word = cursor.fetchone()
 		conn.close()
 		bot.send_message(message.from_user.id, "<b>gameroom\n</b>" + text, reply_markup=key ,parse_mode="html")
@@ -882,10 +882,10 @@ def inline(c):
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
 	elif c.data == "feedback":
-		bot.send_message(c.message.from_user.id, "Напишите мне сообщение, я передам его администратору.")
+		bot.send_message(c.message.chat.id, "Напишите мне сообщение, я передам его администратору.")
 		bot.register_next_step_handler(c.message, feedback)
 	elif "answer2user" in c.data:
-		bot.send_message(c.message.from_user.id, "Ответ пользователю.")
+		bot.send_message(c.message.chat.id, "Ответ пользователю.")
 		bot.register_next_step_handler(c.message, answerToUser, c.data)
 	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
@@ -918,6 +918,7 @@ def inline(c):
 		changeMaxTime(c.message, c.data, c.message.chat.id, c.message.message_id)
 	elif "cleancache" in c.data:
 		group_id = getNumberFromCall(c.data, "c")
+		print(group_id)
 		endGame(group_id)
 
 
