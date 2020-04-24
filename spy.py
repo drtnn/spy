@@ -678,12 +678,14 @@ def AllHandler(message):
 	elif message.text == '/getgroups' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
-		cursor.execute("SELECT grpID FROM groups")
+		cursor.execute("SELECT COUNT(*) FROM groups")
 		word = cursor.fetchone()
 		text = ""
 		while word != None:
-			text += (bot.get_chat(word[0]).title + "\n")
-			word = cursor.fetchone()
+			try:
+				text += (bot.get_chat(word[0]).title + "\n")
+			finally:
+				word = cursor.fetchone()
 		conn.close()
 		bot.send_message(message.from_user.id, "<b>Список групп\n</b>" + text, parse_mode="html")
 	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
@@ -713,7 +715,7 @@ def AllHandler(message):
 	elif message.text == '/showgameroom' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
-		cursor.execute("SELECT * FROM gameroom")
+		cursor.execute("SELECT * FROM gameRoom")
 		word = cursor.fetchone()
 		text = ""
 		if word == None or word[0] == None:
@@ -721,7 +723,7 @@ def AllHandler(message):
 			return
 		key = types.InlineKeyboardMarkup()
 		while word != None:
-			text += word[0] + '_' + word[1] + '_' + word[2] + "\n"
+			text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
 			key.add(types.InlineKeyboardButton(word[1], callback_data=word[1] + "cleancache"))
 			word = cursor.fetchone()
 		conn.close()
