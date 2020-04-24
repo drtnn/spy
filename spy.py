@@ -645,6 +645,27 @@ def answerToUser(message, data):
 	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
 	bot.send_message(user_id, "<i>Обратная связь</i>\n\n{}".format(message.text), reply_markup=key, parse_mode='html')
 
+def showgameroom(message, message_id = 0):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT * FROM gameRoom")
+	word = cursor.fetchone()
+	text = ""
+	if word == None or word[0] == None:
+		bot.send_message(message.from_user.id, "<b>gameroom is clean\n</b>", parse_mode="html")
+		return
+	key = types.InlineKeyboardMarkup()
+	while word != None:
+		text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
+		key.add(types.InlineKeyboardButton(word[0], callback_data=str(word[0]) + "cleancache"))
+		word = cursor.fetchone()
+	conn.close()
+	if message_id == 0:
+		bot.send_message(message.chat.id, "<b>gameroom\n</b>" + text, reply_markup=key ,parse_mode="html")
+	else:
+		bot.edit_message_text("<b>gameroom\n</b>" + text, message.chat.id, message_id=message_id, reply_markup=key ,parse_mode="html")
+
+
 ###########################
 ###### Group Handler ######
 ###########################
@@ -713,21 +734,7 @@ def AllHandler(message):
 		conn.close()
 		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
 	elif message.text == '/showgameroom' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-		cursor = conn.cursor()
-		cursor.execute("SELECT * FROM gameRoom")
-		word = cursor.fetchone()
-		text = ""
-		if word == None or word[0] == None:
-			bot.send_message(message.from_user.id, "<b>gameroom is clean\n</b>", parse_mode="html")
-			return
-		key = types.InlineKeyboardMarkup()
-		while word != None:
-			text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
-			key.add(types.InlineKeyboardButton(word[0], callback_data=str(word[0]) + "cleancache"))
-			word = cursor.fetchone()
-		conn.close()
-		bot.send_message(message.from_user.id, "<b>gameroom\n</b>" + text, reply_markup=key ,parse_mode="html")
+		showgameroom(message)
 
 # @bot.message_handler(commands=['start'])
 def start(message):
@@ -918,8 +925,8 @@ def inline(c):
 		changeMaxTime(c.message, c.data, c.message.chat.id, c.message.message_id)
 	elif "cleancache" in c.data:
 		group_id = getNumberFromCall(c.data, "c")
-		print(group_id)
 		endGame(group_id)
+		showgameroom(c.message, c.message.message_id)
 
 
 
