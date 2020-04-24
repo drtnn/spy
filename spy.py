@@ -706,7 +706,7 @@ def AllHandler(message):
 		cursor.execute("SELECT COUNT(*) FROM groups")
 		groups = cursor.fetchone()
 		conn.close()
-		bot.send_message(message.from_user.id, "<b>Всего групп - {}</b>".format(groups), parse_mode="html")
+		bot.send_message(message.from_user.id, "<b>Всего групп - {}</b>".format(groups[0]), parse_mode="html")
 	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
