@@ -705,8 +705,17 @@ def AllHandler(message):
 		cursor = conn.cursor()
 		cursor.execute("SELECT COUNT(*) FROM groups")
 		groups = cursor.fetchone()
+		cursor.execute("SELECT grpID FROM groups")
+		word = cursor.fetchone()
+		text = ""
+		while word != None:
+			try:
+				text += (bot.get_chat(word[0]).title + "\n")
+			except Exception:
+				text += "no title\n"
+			word = cursor.fetchone()
 		conn.close()
-		bot.send_message(message.from_user.id, "<b>Всего групп - {}</b>".format(groups[0]), parse_mode="html")
+		bot.send_message(message.from_user.id, "<b>Всего групп - {}</b>\n{}".format(groups[0], text), parse_mode="html")
 	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
@@ -821,10 +830,20 @@ def leave(message):
 			bot.send_message(message.chat.id, "<i><a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 		elif spyID == None and getNumberOfGamersByGroupId(message.chat.id) == 1:
 			endGame(message.chat.id)
-			bot.send_message(message.chat.id, "<i><i>Игра завершена.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+			bot.send_message(message.chat.id, "<i>Игра завершена.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 		elif spyID != message.from_user.id and getNumberOfGamersByGroupId(message.chat.id) == 4:
 			bot.send_message(message.chat.id, "<i>Недостаточно игроков для продолжения игры.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 			endGame(message.chat.id)
+		elif spyID != message.from_user.id and getNumberOfGamersByGroupId(message.chat.id) > 4:
+			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+			cursor = conn.cursor()
+			cursor.execute("DELETE FROM gameRoom WHERE userID = '%d'" % (message.from_user.id))
+			cursor.execute("DELETE FROM pieceID WHERE userID = '%d'" % (message.from_user.id))
+			cursor.execute("DELETE FROM poll WHERE userID = '%d'" % (message.from_user.id))
+			conn.commit()
+			conn.close()
+			bot.send_message(message.chat.id, "<i><a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+
 
 def delword(message):
 	if isMyAdmin(message.from_user.id):
