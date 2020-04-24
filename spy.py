@@ -704,15 +704,9 @@ def AllHandler(message):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
 		cursor.execute("SELECT COUNT(*) FROM groups")
-		word = cursor.fetchone()
-		text = ""
-		while word != None:
-			try:
-				text += (bot.get_chat(word[0]).title + "\n")
-			finally:
-				word = cursor.fetchone()
+		groups = cursor.fetchone()
 		conn.close()
-		bot.send_message(message.from_user.id, "<b>Список групп\n</b>" + text, parse_mode="html")
+		bot.send_message(message.from_user.id, "<b>Всего групп - {}</b>".format(groups), parse_mode="html")
 	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Присылай новое слово!")
 		bot.register_next_step_handler(message, addword)
