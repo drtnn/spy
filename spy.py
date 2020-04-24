@@ -645,7 +645,7 @@ def answerToUser(message, data):
 	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
 	bot.send_message(user_id, "<i>Обратная связь</i>\n\n{}".format(message.text), reply_markup=key, parse_mode='html')
 
-def showgameroom(message, message_id = 0):
+def showgameroom(message, message_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
 	cursor.execute("SELECT * FROM gameRoom")
@@ -734,7 +734,7 @@ def AllHandler(message):
 		conn.close()
 		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
 	elif message.text == '/showgameroom' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		showgameroom(message)
+		showgameroom(message, 0)
 
 # @bot.message_handler(commands=['start'])
 def start(message):
