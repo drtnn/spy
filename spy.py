@@ -709,7 +709,20 @@ def AllHandler(message):
 		cursor.execute("SELECT COUNT(*) FROM users")
 		gamers = cursor.fetchone()
 		conn.close()
-		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человека</b>", parse_mode="html")
+		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
+	elif message.text == '/showgameroom' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT * FROM gameroom")
+		word = cursor.fetchone()
+		text = ""
+		key = types.InlineKeyboardMarkup()
+		while word != None:
+			text += word[0] + '_' + word[1] + '_' + word[2] + "\n"
+			key.add(types.InlineKeyboardButton(word[1], callback_data=word[1] + "cleancache"))
+			word = cursor.fetchone()
+		conn.close()
+		bot.send_message(message.from_user.id, "<b>gameroom\n</b>" + text, reply_markup=key ,parse_mode="html")
 
 # @bot.message_handler(commands=['start'])
 def start(message):
@@ -896,6 +909,9 @@ def inline(c):
 		changeToSettings("Максимальное время игры изменено.", c.message.chat.id, c.message.message_id)
 	elif "time" in c.data:
 		changeMaxTime(c.message, c.data, c.message.chat.id, c.message.message_id)
+	elif "cleancache" in c.data:
+		group_id = getNumberFromCall(c.data, "c")
+		endGame(group_id)
 
 
 

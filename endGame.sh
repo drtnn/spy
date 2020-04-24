@@ -1,0 +1,5 @@
+sqlite3 baza.sqlite "DELETE FROM gameRoom WHERE grpID = $1"
+sqlite3 baza.sqlite "DELETE FROM pieceID WHERE grpID =  $1"
+sqlite3 baza.sqlite "DELETE FROM spyID WHERE grpID = $1"
+sqlite3 baza.sqlite "DELETE FROM messages WHERE grpID = $1"
+sqlite3 baza.sqlite "DELETE FROM groupsWord WHERE grpID = $1"
