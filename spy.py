@@ -652,7 +652,7 @@ def showgameroom(message, message_id = 0):
 	word = cursor.fetchone()
 	text = ""
 	if word == None or word[0] == None:
-		bot.send_message(message.from_user.id, "<b>gameroom is clean\n</b>", parse_mode="html")
+		bot.send_message(message.chat.id, "<b>gameroom is clean\n</b>", parse_mode="html")
 		return
 	key = types.InlineKeyboardMarkup()
 	while word != None:
