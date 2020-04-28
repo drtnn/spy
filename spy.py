@@ -70,6 +70,10 @@ def addUserToGame(group_id, user_id, name):
 		if len(gamersFromGameRoom) == numFromSettings:
 			conn.close()
 			return
+	try:
+		bot.send_message(user_id, 'Вы присоединились к игре в {}'.format(bot.get_chat(group_id).title))
+	except Exception:
+		return 4
 	cursor.execute("INSERT INTO gameRoom (grpID,userID, name) VALUES ('%d','%d', '%s')" % (group_id, user_id, name))
 	conn.commit()
 	conn.close()
@@ -231,7 +235,7 @@ def getNumberOfGamersByGroupId(group_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT gamers FROM settings WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
-	print("grpid = " + str(group_id))
+	# print("grpid = " + str(group_id))
 	conn.close()
 	if row != None:
 		return row[0]
@@ -255,7 +259,10 @@ def editInvite(group_id):
 		text += ", <a href='tg://user?id={}'>{}</a>".format(row[1], row[2])
 		row = cursor.fetchone()
 	conn.close()
-	bot.edit_message_text(text, group_id, invite_id, parse_mode='html', reply_markup=key)
+	try:
+		bot.edit_message_text(text, group_id, invite_id, parse_mode='html', reply_markup=key)
+	except Exception:
+		pass
 
 def waitingUsers(group_id, timing):
 	print("I wait")
@@ -282,7 +289,10 @@ def gameStarting(group_id):
 	first_invite_id = getInviteID(group_id)
 	if gameIsExisted(group_id) == 0 and first_invite_id != None:
 		# first_invite_id = getInviteID(group_id)
-		bot.delete_message(group_id, first_invite_id)
+		try:
+			bot.delete_message(group_id, first_invite_id)
+		except Exception:
+			pass
 		if givingRoles(group_id) == 1:
 			bot.send_message(group_id, "Недостаточно игроков для начала игры")
 			endGame(group_id)
@@ -577,15 +587,24 @@ def editToGroupSettings(data, user_id, message_id):
 	key.add(types.InlineKeyboardButton("Изменить время игры", callback_data=str(group_id) + "time"))
 	key.add(types.InlineKeyboardButton("Изменить время регистрации", callback_data=str(group_id) + "inviting"))
 	key.add(types.InlineKeyboardButton("⬅️Обратно в выбор группы", callback_data="groupsettings"))
-	bot.edit_message_text("Настройки", user_id, message_id, reply_markup=key)
+	try:
+		bot.edit_message_text("Настройки", user_id, message_id, reply_markup=key)
+	except Exception:
+		pass
 
 def changeMaxGamers(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 'm')
-	bot.edit_message_text("Введите максимальное количество игроков", user_id, message_id)
+	try:
+		bot.edit_message_text("Введите максимальное количество игроков", user_id, message_id)
+	except Exception:
+		pass	
 	bot.register_next_step_handler(message, maxGamers, old_message_id=message_id, group_id=group_id)
 
 def maxGamers(message, old_message_id, group_id):
-	bot.delete_message(message.chat.id, message.message_id)
+	try:
+		bot.delete_message(message.chat.id, message.message_id)
+	except Exception:
+		pass
 	if message.text.isdigit() and int(message.text) < bot.get_chat_members_count(group_id):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
@@ -602,19 +621,28 @@ def changeInviteTime(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 'i')
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton(text="45 секунд", callback_data="45_" + str(group_id) + "chinvite"), types.InlineKeyboardButton(text="1 минута", callback_data="60_" + str(group_id) + "chinvite"), types.InlineKeyboardButton(text="2 минуты", callback_data="120_" + str(group_id) + "chinvite"))
-	bot.edit_message_text("Выберите длительность регистрации", user_id, message_id, reply_markup=key)
+	try:
+		bot.edit_message_text("Выберите длительность регистрации", user_id, message_id, reply_markup=key)
+	except Exception:
+		pass
 
 def changeMaxTime(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 't')
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton(text="5 минут", callback_data="5_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="10 минут", callback_data="10_" + str(group_id) + "chtime"), types.InlineKeyboardButton(text="15 минут", callback_data="15_" + str(group_id) + "chtime"))
-	bot.edit_message_text("Выберите длительность игры", user_id, message_id, reply_markup=key)
+	try:
+		bot.edit_message_text("Выберите длительность игры", user_id, message_id, reply_markup=key)
+	except Exception:
+		pass
 
 def changeToSettings(text, user_id, message_id):
 	key = types.InlineKeyboardMarkup()
 	for i in getCreatorsGroups(user_id):
 		key.add(types.InlineKeyboardButton(text=bot.get_chat(i[0]).title, callback_data=str(i[0]) + "settings"))
-	bot.edit_message_text(text, user_id, message_id, reply_markup=key)
+	try:
+		bot.edit_message_text(text, user_id, message_id, reply_markup=key)
+	except Exception:
+		pass
 
 def getTimeForGame(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -657,8 +685,12 @@ def showgameroom(message, message_id):
 		bot.send_message(message.chat.id, "<b>gameroom is clean\n</b>", reply_markup=key, parse_mode="html")
 		return
 	elif word == None or word[0] == None:
-		bot.edit_message_text("<b>gameroom is clean\n</b>", message.chat.id, message_id=message_id, reply_markup=key, parse_mode="html")
-		return
+		try:
+			bot.edit_message_text("<b>gameroom is clean\n</b>", message.chat.id, message_id=message_id, reply_markup=key, parse_mode="html")
+		except Exception:
+			pass
+		finally:
+			return
 	while word != None:
 		text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
 		key.add(types.InlineKeyboardButton(word[0], callback_data=str(word[0]) + "cleancache"))
@@ -667,8 +699,10 @@ def showgameroom(message, message_id):
 	if message_id == 0:
 		bot.send_message(message.chat.id, "<b>gameroom\n</b>" + text, reply_markup=key ,parse_mode="html")
 	else:
-		bot.edit_message_text("<b>gameroom\n</b>" + text, message.chat.id, message_id=message_id, reply_markup=key ,parse_mode="html")
-
+		try:
+			bot.edit_message_text("<b>gameroom\n</b>" + text, message.chat.id, message_id=message_id, reply_markup=key ,parse_mode="html")
+		except Exception:
+			pass
 
 ###########################
 ###### Group Handler ######
@@ -677,7 +711,10 @@ def showgameroom(message, message_id):
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
 def AllHandler(message):
 	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None and (message.from_user.id,) not in getGamersByGroupId(message.chat.id):
-		bot.delete_message(message.chat.id, message.message_id)
+		try:
+			bot.delete_message(message.chat.id, message.message_id)
+		except Exception:
+			pass
 		if message.chat.type == 'supergroup':
 			bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
 	elif message.text == '/start' or message.text == '/start@findspy_bot':
@@ -892,14 +929,22 @@ def inline(c):
 	elif c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
 		addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
 		if addReturn == 3:
-			bot.delete_message(c.message.chat.id, c.message.message_id)
+			try:
+				bot.delete_message(c.message.chat.id, c.message.message_id)
+			except Exception:
+				pass
 			return
-		if addReturn == 1:
+		elif addReturn == 1:
 			return
 		elif addReturn == 2:
 			key = types.InlineKeyboardMarkup()
 			key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
 			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог!".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
+			return
+		elif addReturn == 4:
+			key = types.InlineKeyboardMarkup()
+			key.add(types.InlineKeyboardButton("Возобновим?", url="t.me/findspy_bot"))
+			bot.send_message(c.message.chat.id, "Похоже <a href='tg://user?id={}'>{}</a> приостановил личный диалог!".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
 			return
 		inviteID(c.message.chat.id, c.message.message_id)
 		editInvite(c.message.chat.id)
@@ -916,8 +961,12 @@ def inline(c):
 	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
 	elif "poll" in c.data:
-		bot.edit_message_text("Вы сделали свой выбор!", c.message.chat.id, c.message.message_id)
-		pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
+		try:
+			bot.edit_message_text("Вы сделали свой выбор!", c.message.chat.id, c.message.message_id)
+		except Exception:
+			pass
+		finally:
+			pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
 	elif "maxgamers" in c.data:
 		changeMaxGamers(c.message, c.data, c.message.chat.id, c.message.message_id)
 	elif "inviting" in c.data:
