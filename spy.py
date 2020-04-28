@@ -536,7 +536,7 @@ def checkingAnswer(message, group_id):
 def SpyWins(group_id):
 	key = types.InlineKeyboardMarkup()
 	# key.add(types.InlineKeyboardButton("Сыграть еще раз!", callback_data="game"))
-	bot.send_message(group_id, "Поздравляем шпиона <a href='tg://user?id={}'>{}</a> с победой!\nМесто: {}\n\nСыграем еще раз? /game".format(getSpyID(group_id), getNameFromGameRoom(getSpyID(group_id)), getGroupsWord(group_id)), parse_mode='html', reply_markup=key)
+	bot.send_message(group_id, "Поздравляем шпиона <a href='tg://user?id={}'>{}</a> с победой!\n\n    Место: {}\n\nСыграем еще раз? /game".format(getSpyID(group_id), getNameFromGameRoom(getSpyID(group_id)), getGroupsWord(group_id)), parse_mode='html', reply_markup=key)
 	endGame(group_id)
 
 def getMyAdmins():
