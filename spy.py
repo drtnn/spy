@@ -527,7 +527,7 @@ def getGroupsWord(group_id):
 
 def checkingAnswer(message, group_id):
 	word = getGroupsWord(group_id)
-	if message.text == word:
+	if message.text.lower() == word.lower():
 		bot.send_message(message.from_user.id, "Браво, абсолютно верно!")
 		SpyWins(group_id)
 	else:
@@ -813,7 +813,8 @@ def game(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id, 1084976464) == 0:
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
-		bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
+		invite_message = bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
+		inviteID(invite_message.chat.id, invite_message.message_id)
 		if newGame(message.chat.id, message.from_user.id, message.from_user.first_name) == 2:
 			btn = types.InlineKeyboardMarkup()
 			btn.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
@@ -946,7 +947,6 @@ def inline(c):
 			key.add(types.InlineKeyboardButton("Возобновим?", url="t.me/findspy_bot"))
 			bot.send_message(c.message.chat.id, "Похоже <a href='tg://user?id={}'>{}</a> приостановил личный диалог!".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
 			return
-		inviteID(c.message.chat.id, c.message.message_id)
 		editInvite(c.message.chat.id)
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
