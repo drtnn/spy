@@ -803,7 +803,7 @@ def AllHandler(message):
 	elif message.text == '/admrass' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Рассылка\n\n/cancel для отмены")
 		bot.register_next_step_handler(message, admrass)
-	elif message.text == '/admrass' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+	elif message.text == '/admsendmsg' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Пришлите user_id\n\n/cancel для отмены")
 		bot.register_next_step_handler(message, admsendmsg)
 
