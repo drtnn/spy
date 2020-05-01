@@ -663,11 +663,17 @@ def getTimeAfterPoll(group_id):
 		return row[0] * 20
 
 def feedback(message):
+	if message.text == "/cancel":
+		bot.send_message(message.from_user.id, "Отмена.")
+		return
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Ответить {}".format(message.from_user.first_name), callback_data=str(message.from_user.id) + "answer2user"))
-	bot.send_message(144589481, "<i>Feedback</i>\n\n{}".format(message.text), reply_markup=key, parse_mode='html')
+	bot.send_message(144589481, "<i>Feedback</i>\n\nuser_id = {}\n\n{}".format(message.from_user.id, message.text), reply_markup=key, parse_mode='html')
 
 def answerToUser(message, data):
+	if message.text == "/cancel":
+		bot.send_message(message.from_user.id, "Отмена.")
+		return
 	user_id = getNumberFromCall(data, 'a')
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
@@ -703,6 +709,21 @@ def showgameroom(message, message_id):
 			bot.edit_message_text("<b>gameroom\n</b>" + text, message.chat.id, message_id=message_id, reply_markup=key ,parse_mode="html")
 		except Exception:
 			pass
+
+def admsendmsg(message):
+	if message.text == "/cancel":
+		return
+	bot.send_message(message.from_user.id, "Теперь пришлите сообщение для юзера\n\n/cancel для отмены")
+	bot.register_next_step_handler(message, admsendingmsg, int(message.text))
+
+def admsendingmsg(message, user_id):
+	if message.text == "/cancel":
+		return
+	try:
+		bot.send_message(user_id, message.text, parse_mode='html')
+		bot.send_message(message.from_user.id, "Сообщение отправлено")
+	except Exception:
+		bot.send_message(message.from_user.id, "Ошибка")
 
 ###########################
 ###### Group Handler ######
@@ -779,6 +800,13 @@ def AllHandler(message):
 		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
 	elif message.text == '/showgameroom' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		showgameroom(message, 0)
+	elif message.text == '/admrass' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		bot.send_message(message.from_user.id, "Рассылка\n\n/cancel для отмены")
+		bot.register_next_step_handler(message, admrass)
+	elif message.text == '/admrass' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		bot.send_message(message.from_user.id, "Пришлите user_id\n\n/cancel для отмены")
+		bot.register_next_step_handler(message, admsendmsg)
+
 
 # @bot.message_handler(commands=['start'])
 def start(message):
@@ -919,6 +947,18 @@ def settings(message):
 	else:
 		bot.send_message(message.chat.id, "Команда используется только создателем беседы в личном чате!")
 
+def admrass(message):
+	if message.text == "/cancel":
+		return
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute('SELECT * FROM users')
+	row = cursor.fetchone()
+	while row is not None:
+		bot.send_message(row[0], message.text, parse_mode="html")
+		row = cursor.fetchone()
+	conn.close()
+
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
 	print(c.data)
@@ -951,12 +991,12 @@ def inline(c):
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
 	elif c.data == "feedback":
-		bot.send_message(c.message.chat.id, "Напишите мне сообщение, я передам его администратору.")
+		bot.send_message(c.message.chat.id, "Напишите мне сообщение, я передам его администратору.\n\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, feedback)
 	elif c.data == "updategameroom":
 		showgameroom(c.message, c.message.message_id)
 	elif "answer2user" in c.data:
-		bot.send_message(c.message.chat.id, "Ответ пользователю.")
+		bot.send_message(c.message.chat.id, "Ответ пользователю.\n\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, answerToUser, c.data)
 	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
