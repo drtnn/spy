@@ -842,17 +842,25 @@ def whenToEndOfflineGame(user_id, date, endTime):
 			bot.send_message(user_id, "<i>До окончания игры осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
 		print("whenToEndOfflineGame")
 
+def find_all_by_key(iterable, key, value):
+	list = [value for index, dict_ in enumerate(iterable)
+			if key in dict_ and dict_[key] == value]
+	if len(list) != 0:
+		return True
+	else:
+		return False
+
 ###########################
 ###### Group Handler ######
 ###########################
 
 @bot.message_handler(content_types=["group_chat_created", "supergroup_chat_created"])
-def groupChatCreateg(message):
+def groupChatCreated(message):
 	start(message)
 
 @bot.message_handler(content_types=["new_chat_members"])
 def newChatMember(message):
-	if (message.chat.type == 'group' or message.chat.type == 'supergroup') and message.new_chat_members.id == bot.get_me().id:
+	if (message.chat.type == 'group' or message.chat.type == 'supergroup') and (message.new_chat_member.id == bot.get_me().id): #or find_all_by_key(message.new_chat_members, "id", bot.get_me().id)):
 		start(message)
 
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
@@ -938,18 +946,17 @@ def AllHandler(message):
 
 # @bot.message_handler(commands=['start'])
 def start(message):
-	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and message.text == '/start@findspy_bot':
+	if message.chat.type == 'supergroup' or message.chat.type == 'group':
 		if addGroup(message.chat.id) == 0:
 			admSettings(message.chat.id)
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
 		key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
 		bot.send_message(message.chat.id, "Привет! Я бот игры \"Шпион\", для начала игры дай мне права администратора!\nА чтобы я мог с тобой общаться, переходи в диалог со мной и жми /start", reply_markup=key)
-	if message.chat.type == 'private':
+	elif message.chat.type == 'private':
 		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион. Рад, что мы теперь знакомы!")
 		help(message)
 		addUser(message.from_user.id)
-
 
 def help(message):
 	key = types.InlineKeyboardMarkup()
