@@ -13,16 +13,15 @@ import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
 
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+
 bot = telebot.TeleBot(token)
 
 def getWord():
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
-	cursor.execute("SELECT MAX(id) FROM words")
-	maxNum = cursor.fetchone()[0]
-	randomNumber = random.randint(1, maxNum)
-	cursor.execute("SELECT word FROM words WHERE id = '%d'" % (randomNumber))
+	cursor.execute("SELECT word FROM words ORDER BY RANDOM() LIMIT 1")
 	word = cursor.fetchone()[0]
 	conn.close()
 	return word
@@ -143,6 +142,7 @@ def endGame(group_id):
 	# cursor.execute("DELETE FROM spyID WHERE grpID = '%d'" % (group_id))
 	cursor.execute("DELETE FROM messages WHERE grpID = '%d'" % (group_id))
 	cursor.execute("DELETE FROM poll WHERE grpID = '%d'" % (group_id))
+	cursor.execute("UPDATE groups SET word = NULL WHERE grpID = '%d'" % (group_id))
 	# cursor.execute("DELETE FROM groupsWord WHERE grpID = '%d'" % (group_id))
 	conn.commit()
 	conn.close()
@@ -283,7 +283,7 @@ def givingWords(group_id):
 	for i in gamers:
 		bot.send_message(i[0], "Итак, ваше место - {}".format(word))
 	# cursor.execute("INSERT INTO groupsWord (grpID, word) VALUES ('%d', '%s')" % (group_id, word))
-	cursor.execute("UPDATE groups SET word = '%s' WHERE grpID = '%s'" % (word, group_id))
+	cursor.execute("UPDATE groups SET word = '%s' WHERE grpID = '%d'" % (word, group_id))
 	conn.commit()
 	cursor.execute("SELECT userID FROM gameroom WHERE grpID = '%d' and role = 1" % (group_id))
 	bot.send_message(cursor.fetchone()[0], "Ты - шпион! Постарайся угадать место и напиши мне /answer.")
@@ -731,20 +731,129 @@ def admsendingmsg(message, user_id):
 	except Exception:
 		bot.send_message(message.from_user.id, "Ошибка")
 
-def numGamersForOFflineGame(message, old_message_id):
-	try:
+def numGamersForOFflineGame(message, chat_id, old_message_id):
+	if message.text.isdigit() and int(message.text) >= 4:
+		bot.delete_message(message.chat.id, message.message_id)
 		numOfGamers = int(message.text)
-	except ValueError:
-		bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только число игроков")
-		message_id = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nВведите количество игроков для начала игры", reply_markup=key, parse_mode='html')
-		bot.register_next_step_handler(message, numGamersForOFflineGame, message_id)
-	if message.text.isdigit() and int(message.text) > 3 :
-		print("dd")
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO offlineGame (userID, gamers, word) VALUES ('%d', '%d', '%s')" % (message.chat.id, numOfGamers, getWord()))
+		conn.commit()
+		conn.close()
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton(text="5 минут", callback_data="5offlinetime"), types.InlineKeyboardButton(text="10 минут", callback_data="10offlinetime"), types.InlineKeyboardButton(text="15 минут", callback_data="15offlinetime"))
+		try:
+			bot.edit_message_text("Выберите длительность игры", chat_id, old_message_id, reply_markup=key)
+		except Exception:
+			pass
+	elif message.text.isdigit():
+		bot.delete_message(message.chat.id, message.message_id)
+		try:
+			bot.edit_message_text("<b>Оффлайн игра</b>\nНедостаточно игроков для начала игры", message.chat.id, message_id=old_message_id, parse_mode='html')
+		except Exception:
+			pass
+	else:
+		bot.delete_message(message.chat.id, message.message_id)
+		try:
+			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только число игроков", message.chat.id, message_id=old_message_id, parse_mode='html')
+		except Exception:
+			pass
+		bot.register_next_step_handler(message, numGamersForOFflineGame, chat_id, old_message_id)
 
+def setOfflineSpy(user_id, message_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT spy FROM offlineGame WHERE userID = '%d'" % (user_id))
+	row = cursor.fetchone()
+	if row[0] != None:
+		conn.close()
+		return row[0]
+	cursor.execute("SELECT gamers FROM offlineGame WHERE userID = '%d'" % (user_id))
+	numOfGamers = cursor.fetchone()[0]
+	randomNumber = random.randint(1, numOfGamers)
+	cursor.execute("UPDATE offlineGame SET spy = '%d' WHERE userID = '%d'" % (randomNumber, user_id))
+	conn.commit()
+	conn.close()
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton(text="Поехали", callback_data="1offlinerole"))
+	try:
+		bot.edit_message_text("<b>Оффлайн игра</b>\nВсе готово, можем начинать.\nДержи телефон так, чтобы твои друзья не видели место, в которое мы сейчас переместимся", user_id, message_id=message_id, reply_markup=key, parse_mode='html')
+	except Exception:
+		pass
+	
+def startOfflineGame(user_id, message_id, id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT gamers,spy,word FROM offlineGame WHERE userID = '%d'" % (user_id))
+	row = cursor.fetchone()
+	key = types.InlineKeyboardMarkup()
+	if id == row[1] and id == row[0]:
+		key.add(types.InlineKeyboardButton("OK", callback_data="rolesgiven"))
+		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные", user_id, message_id, parse_mode='html', reply_markup=key)
+	elif id == row[0]:
+		key.add(types.InlineKeyboardButton("OK", callback_data="rolesgiven"))
+		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
+	elif id == row[1]:
+		key.add(types.InlineKeyboardButton("OK", callback_data=str(id + 1)+"waitrole"))
+		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные", user_id, message_id, parse_mode='html', reply_markup=key)
+	else:
+		key.add(types.InlineKeyboardButton("OK", callback_data=str(id + 1)+"waitrole"))
+		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
+
+def offlineGameEnd(user_id, message_id, date):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	if date == None:
+		bot.delete_message(user_id, message_id)
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("Новая игра", callback_data="edittooffline"))
+		bot.send_message(user_id, "<b>Игра окончена!</b>\n*Никогда не поздно сыграть еще раз*", reply_markup=key, parse_mode='html')
+		cursor.execute("DELETE FROM offlineGame WHERE userID = '%d'" % (user_id))
+		conn.commit()
+		conn.close()
+		return
+	cursor.execute("SELECT startTime FROM offlineGame WHERE userID = '%d'" % (user_id))
+	startTime = cursor.fetchone()
+	if startTime == None or startTime[0] != date:
+		return
+	bot.delete_message(user_id, message_id)
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Новая игра", callback_data="edittooffline"))
+	bot.send_message(user_id, "<b>Игра окончена!</b>\n*Никогда не поздно сыграть еще раз*", reply_markup=key, parse_mode='html')
+	cursor.execute("DELETE FROM offlineGame WHERE userID = '%d'" % (user_id))
+	conn.commit()
+	conn.close()
+
+def getOfflineGameStartTime(user_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	cursor.execute("SELECT startTime FROM offlineGame WHERE userID = '%d'" % (user_id))
+	startTime = cursor.fetchone()
+	if startTime != None:
+		return startTime[0]
+	conn.close()
+
+def whenToEndOfflineGame(user_id, date, endTime):
+	timing = 0
+	while timing <= endTime and getOfflineGameStartTime(user_id) == date:
+		time.sleep(3)
+		timing += 3
+		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
+			bot.send_message(user_id, "<i>До окончания игры осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
+		print("whenToEndOfflineGame")
 
 ###########################
 ###### Group Handler ######
 ###########################
+
+@bot.message_handler(content_types=["group_chat_created", "supergroup_chat_created"])
+def groupChatCreateg(message):
+	start(message)
+
+@bot.message_handler(content_types=["new_chat_members"])
+def newChatMember(message):
+	if (message.chat.type == 'group' or message.chat.type == 'supergroup') and message.new_chat_members.id == bot.get_me().id:
+		start(message)
 
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
 def AllHandler(message):
@@ -823,6 +932,8 @@ def AllHandler(message):
 	elif message.text == '/admsendmsg' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
 		bot.send_message(message.from_user.id, "Пришлите user_id\n\n/cancel для отмены")
 		bot.register_next_step_handler(message, admsendmsg)
+	elif message.text == '/offlinegame' or message.text == '/offlinegame@findspy_bot':
+		offlineGame(message)
 
 
 # @bot.message_handler(commands=['start'])
@@ -833,7 +944,7 @@ def start(message):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
 		key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
-		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион, для начала игры дай мне права администратора и перейдите в лс к боту!", reply_markup=key)
+		bot.send_message(message.chat.id, "Привет! Я бот игры \"Шпион\", для начала игры дай мне права администратора!\nА чтобы я мог с тобой общаться, переходи в диалог со мной и жми /start", reply_markup=key)
 	if message.chat.type == 'private':
 		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион. Рад, что мы теперь знакомы!")
 		help(message)
@@ -844,7 +955,7 @@ def help(message):
 	key = types.InlineKeyboardMarkup()
 	if message.chat.type == 'private':
 		key.add(types.InlineKeyboardButton("Обратная связь", callback_data="feedback"))
-	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу и написать команду /start\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".\n\nИзменить количество игроков, время игры и многое другое может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html', reply_markup=key)
+	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".\nПодробные правила можно игры можно найти по команде /rules.\n\nИзменить количество игроков, время игры и многое другое может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html', reply_markup=key)
 
 # @bot.message_handler(commands=['startpoll'])
 def startPollNow(message):
@@ -855,7 +966,7 @@ def startPollNow(message):
 
 # @bot.message_handler(commands=['game'])
 def game(message):
-	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id, 1084976464) == 0:
+	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id, bot.get_me().id) == 0:
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
 		invite_message = bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
@@ -882,7 +993,7 @@ def end(message):
 # @bot.message_handler(commands=['rules'])
 def rules(message):
 	# bot.send_message(message.chat.id, '<b>Правила</b>\nВ игре участвуют местные и шпионы.\nЦель игры:\n* Местным необходимо выявить шпиона.\n* Шпиону необходимо определить локацию.\nВ начале игры в личном диалоге местным будет сообщена локация, Шпиону - нет.\nЗадавайте друг другу вопросы, связанные с данной локацией, чтобы вычислить шпиона. Например: "Когда ты был последний раз в этом месте?"\nПраво задать следующий вопрос переходит отвечающему.\nВы шпион и догадываетесь о какой локации идет речь? Переходите ко мне в личный диалог, жмите /answer и отправляйте ваше слово.\nЕсли же вы местный и сочли чьи-то ответы слишком подозрительными, то вы можете дождаться голосования и выбрать подозреваемого, либо начать голосование прямо сейчас с помощью команды /startpoll.\nИ помните, одна игра - одно голосование!\n\nИзменить количество игроков и время игры может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html')
-	bot.send_message(message.chat.id, '<b>Правила</b>\nИграй в любимую игру с друзьями, находясь далеко от них. В этой игре вашу компанию будет заносить в разные места. Вы можете оказаться работниками отеля или универмага, стать участниками, улететь в космос или очутиться на пиратском корабле. Границы широки!\nЦель шпиона - угадать место.\nЦель остальных - раскрыть шпиона.\nВам нужно будет расспрашивать друг друга о месте, в которое попали, пытаясь вычислить спрятавшегося среди соперников шпиона. Он единственный, кто понятия не имеет где вы все находитесь. Но при этом он будет слышать все ваши переговоры и иногда участвовать в них. Если ему удастся вычислить локацию прежде чем его раскроют - он победил!\n\nЗови друзей, играйте, обвиняйте друг друга, несите чушь и весело проводите время в игре «Шпион».', parse_mode='html')
+	bot.send_message(message.chat.id, '<b>Правила</b>\nВ этой игре вашу компанию будет заносить в разные места. Вы можете оказаться работниками отеля или универмага, стать участниками, улететь в космос или очутиться на пиратском корабле. Границы широки!\nЦель шпиона - угадать место.\nЦель остальных - раскрыть шпиона.\nВам нужно будет расспрашивать друг друга о месте, в которое попали, пытаясь вычислить спрятавшегося среди соперников шпиона. Он единственный, кто понятия не имеет где вы все находитесь. Но при этом он будет слышать все ваши переговоры и иногда участвовать в них. Если ему удастся вычислить локацию прежде чем его раскроют - он победил!\n\nЗови друзей, играйте, обвиняйте друг друга, несите чушь и весело проводите время в игре \"Шпион\".', parse_mode='html')
 
 # def admword(message):
 # 	if isMyAdmin(message.from_user.id) and getGroupbByUsersIDInGame(message.chat.id) != None:
@@ -892,9 +1003,7 @@ def addword(message):
 	if isMyAdmin(message.from_user.id):
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
-		cursor.execute("SELECT MAX(id) FROM words")
-		maxNum = cursor.fetchone()[0]
-		cursor.execute("INSERT INTO words (id,word) VALUES ('%d','%s')" % (maxNum + 1, message.text))
+		cursor.execute("INSERT INTO words (word) VALUES ('%s')" % (message.text))
 		conn.commit()
 		conn.close()
 		bot.send_message(message.from_user.id, "Добавлено!")
@@ -944,10 +1053,6 @@ def delword(message):
 			conn.close()
 			bot.send_message(message.from_user.id, "Удалено!")
 
-def offlineGame(message):
-	message_id = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nВведите количество игроков для начала игры", reply_markup=key, parse_mode='html')
-	bot.register_next_step_handler(message, numGamersForOFflineGame, message_id)
-
 # @bot.message_handler(commands=['answer'])
 def answer(message):
 	group_id = getGroupbByUsersIDInGame(message.from_user.id)
@@ -980,6 +1085,22 @@ def admrass(message):
 		bot.send_message(row[0], message.text, parse_mode="html")
 		row = cursor.fetchone()
 	conn.close()
+
+def offlineGame(message):
+	if message.chat.type == 'private':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT * FROM offlineGame WHERE userID = '%d'" % (message.chat.id))
+		if cursor.fetchone() != None:
+			conn.close()
+			key = types.InlineKeyboardMarkup()
+			key.add(types.InlineKeyboardButton("Старт", callback_data="edittooffline"))
+			# key.add(types.InlineKeyboardButton("Отмена", callback_data="delete_message"))
+			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nНачнем новую игру?", reply_markup=key, parse_mode='html')
+		else:
+			conn.close()
+			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nВведите количество игроков для начала игры", parse_mode='html')
+			bot.register_next_step_handler(message, numGamersForOFflineGame, old_message.chat.id, old_message.message_id)
 
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
@@ -1017,6 +1138,59 @@ def inline(c):
 		bot.register_next_step_handler(c.message, feedback)
 	elif c.data == "updategameroom":
 		showgameroom(c.message, c.message.message_id)
+	elif c.data == "skipinvite":
+		gameStarting(c.message.chat.id)
+	elif c.data == "edittooffline":
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("DELETE FROM offlineGame WHERE userID = '%d'" % (c.message.chat.id))
+		conn.commit()
+		conn.close()
+		try:
+			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите количество игроков для начала игры", c.message.chat.id, c.message.message_id, parse_mode='html')
+		except Exception:
+			pass
+		bot.register_next_step_handler(c.message, numGamersForOFflineGame, c.message.chat.id, c.message.message_id)
+	elif c.data == "delete_message":
+		bot.delete_message(c.message.chat.id, c.message.message_id)
+	elif c.data == "rolesgiven":
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("UPDATE offlineGame SET startTime = '%d' WHERE userID = '%d'" % (c.message.date, c.message.chat.id))
+		conn.commit()
+		cursor.execute("SELECT time FROM offlineGame WHERE userID = '%d'" % (c.message.chat.id))
+		endTime = cursor.fetchone()[0]
+		conn.close()
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("Закончить игру", callback_data="endofflinegame"))
+		try:
+			bot.edit_message_text("<b>Оффлайн игра</b>\nНачинайте задавать вопросы!\nУспейте вычислить Шпиона прежде, чем истечет время, иначе он победит.", c.message.chat.id, c.message.message_id, reply_markup=key, parse_mode='html')
+		except Exception:
+			pass
+		t = threading.Thread(target=whenToEndOfflineGame, name="Threadoffline{}".format(str(c.message.chat.id)), args=(c.message.chat.id, c.message.date, endTime))###################################################################################################################
+		t.start()
+		t.join()
+		offlineGameEnd(c.message.chat.id, c.message.message_id, c.message.date)
+	elif c.data == "endofflinegame":
+		offlineGameEnd(c.message.chat.id, c.message.message_id, None)
+	elif "waitrole" in c.data:
+		id = getNumberFromCall(c.data, 'w')
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("Готов", callback_data=str(id)+"offlinerole"))
+		try:
+			bot.edit_message_text("Держи телефон так, чтобы твои друзья не видели место, в которое мы сейчас переместимся", c.message.chat.id, c.message.message_id, reply_markup=key, parse_mode='html')
+		except Exception:
+			pass
+	elif "offlinerole" in c.data:
+		startOfflineGame(c.message.chat.id, c.message.message_id, getNumberFromCall(c.data, "o"))
+	elif "offlinetime" in c.data:
+		offlineTime = getNumberFromCall(c.data, 'o')
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("UPDATE offlineGame SET time = '%d' WHERE userID = '%d'" % (offlineTime * 60, c.message.chat.id))
+		conn.commit()
+		conn.close()
+		setOfflineSpy(c.message.chat.id, c.message.message_id)
 	elif "answer2user" in c.data:
 		bot.send_message(c.message.chat.id, "Ответ пользователю.\n\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, answerToUser, c.data)
@@ -1029,9 +1203,6 @@ def inline(c):
 			pass
 		finally:
 			pollHandler(getGroupbByUsersIDInGame(c.from_user.id), c.from_user.id, c.data)
-	elif "skipinvite" in c.data:
-		group_id = getNumberFromCall(c.data, "s")
-		gameStarting(group_id)
 	elif "maxgamers" in c.data:
 		changeMaxGamers(c.message, c.data, c.message.chat.id, c.message.message_id)
 	elif "inviting" in c.data:
