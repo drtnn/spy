@@ -537,7 +537,7 @@ def checkingAnswer(message, group_id):
 		bot.send_message(message.from_user.id, "Браво, абсолютно верно!")
 		SpyWins(group_id)
 	else:
-		bot.send_message(message.from_user.id, "Слово(а) совпадают на " + wordsPercent(message.text, word) + "\nМожешь попробовать еще раз - /answer")
+		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз - /answer")
 
 def SpyWins(group_id):
 	key = types.InlineKeyboardMarkup()
@@ -789,16 +789,16 @@ def startOfflineGame(user_id, message_id, id):
 	key = types.InlineKeyboardMarkup()
 	if id == row[1] and id == row[0]:
 		key.add(types.InlineKeyboardButton("OK", callback_data="rolesgiven"))
-		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные", user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные.\n\nЖми\"ОК\" для начала игры.", user_id, message_id, parse_mode='html', reply_markup=key)
 	elif id == row[0]:
 		key.add(types.InlineKeyboardButton("OK", callback_data="rolesgiven"))
-		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми\"ОК\" для начала игры.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
 	elif id == row[1]:
 		key.add(types.InlineKeyboardButton("OK", callback_data=str(id + 1)+"waitrole"))
-		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные", user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные\n\nЖми\"ОК\" и передавай телефон следующему игроку.", user_id, message_id, parse_mode='html', reply_markup=key)
 	else:
 		key.add(types.InlineKeyboardButton("OK", callback_data=str(id + 1)+"waitrole"))
-		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми\"ОК\" и передавай телефон следующему игроку.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
 
 def offlineGameEnd(user_id, message_id, date):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
