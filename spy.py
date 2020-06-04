@@ -1245,4 +1245,8 @@ def inline(c):
 #     bot.polling(none_stop=True, interval=0)
 # except Exception:
 #     pass
-bot.polling(none_stop=True)
+try:
+	bot.send_message(144589481, "polling restart")
+	bot.polling(none_stop=True)
+except Exception as e:
+	bot.send_message(144589481, e)
