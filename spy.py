@@ -182,7 +182,7 @@ def checkPermissions(group_id, bot_id):
 	else:
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
-		bot.send_message(group_id, "Похоже я еще не получил права администратора!\nЯ не читаю и не отслеживаю ваши сообщения!", reply_markup=key)
+		bot.send_message(group_id, "Похоже я еще не получил права администратора.\nЯ не читаю и не отслеживаю ваши сообщения!", reply_markup=key)
 		return 1
 
 def inviteID(group_id, invite_id):
@@ -281,7 +281,7 @@ def givingWords(group_id):
 	gamers = cursor.fetchall()
 	word = getWord()
 	for i in gamers:
-		bot.send_message(i[0], "Итак, ваше место - {}".format(word))
+		bot.send_message(i[0], "Итак, ваше место - {}.".format(word))
 	# cursor.execute("INSERT INTO groupsWord (grpID, word) VALUES ('%d', '%s')" % (group_id, word))
 	cursor.execute("UPDATE groups SET word = '%s' WHERE grpID = '%d'" % (word, group_id))
 	conn.commit()
@@ -300,7 +300,7 @@ def gameStarting(group_id):
 		except Exception:
 			pass
 		if givingRoles(group_id) == 1:
-			bot.send_message(group_id, "Недостаточно игроков для начала игры")
+			bot.send_message(group_id, "Недостаточно игроков для начала игры.")
 			endGame(group_id)
 			return 1
 		givingWords(group_id)
@@ -315,7 +315,7 @@ def gameStarting(group_id):
 		# t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(group_id)), args=(group_id, 120))###################################################################################################################
 		# t.start()
 	elif first_invite_id == None:
-		bot.send_message(group_id, "Недостаточно игроков для начала игры")
+		bot.send_message(group_id, "Недостаточно игроков для начала игры.")
 		endGame(group_id)
 		return 1
 
@@ -339,7 +339,7 @@ def whenToEndPoll(group_id, endTime):
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
-			bot.send_message(group_id, "<i>До окончания голосования осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
+			bot.send_message(group_id, "<i>До окончания голосования осталось " + str(endTime-timing)+" секунд.</i>", parse_mode="html")
 		print("whenToEndPoll")
 	startGameResult(group_id)
 
@@ -349,7 +349,7 @@ def whenToStartPoll(group_id, endTime):
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
-			bot.send_message(group_id, "<i>До начала голосования осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
+			bot.send_message(group_id, "<i>До начала голосования осталось " + str(endTime-timing)+" секунд.</i>", parse_mode="html")
 		print("whenToStartPoll")
 	individualPoll(group_id)
 	t = threading.Thread(target=whenToEndPoll, name="Thread2EndPoll{}".format(str(group_id)), args=(group_id, getTimeAfterPoll(group_id)))###################################################################################################################
@@ -365,7 +365,7 @@ def whenToEndInvite(group_id, endTime):
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
-			bot.send_message(group_id, "<i>До окончания регистрации осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
+			bot.send_message(group_id, "<i>До окончания регистрации осталось " + str(endTime-timing)+" секунд.</i>", parse_mode="html")
 		print("whenToEndInvite")
 	# gameStarting(group_id)
 
@@ -442,7 +442,7 @@ def pollHandler(group_id, user_id, poll_data):
 	if row != None:
 		cursor.execute("UPDATE poll SET onUserID = '%d' WHERE whoUserID = '%d'" % (userPoll,user_id))
 	else:
-		bot.send_message(group_id, "<a href='tg://user?id={}'>{}</a> сделал свой выбор".format(user_id, getNameFromGameRoom(user_id)), parse_mode='html')
+		bot.send_message(group_id, "<a href='tg://user?id={}'>{}</a> сделал свой выбор.".format(user_id, getNameFromGameRoom(user_id)), parse_mode='html')
 		cursor.execute("INSERT INTO poll (grpID,whoUserID,onUserID) VALUES ('%d','%d', '%d')" % (group_id, user_id, userPoll))
 	conn.commit()
 	conn.close()
@@ -472,15 +472,15 @@ def startGameResult(group_id):
 		randomNumber = random.randint(1, len(row))
 		spy = isSpy(group_id, row[randomNumber - 1])
 		if spy == None:
-			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
+			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>.".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 		else:
-			bot.send_message(group_id, "Поздравляем, вы нашли шпиона!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
+			bot.send_message(group_id, "Поздравляю, вы нашли шпиона!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>.".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 	else:
 		spy = isSpy(group_id, row[0])
 		if spy == None:
-			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
+			bot.send_message(group_id, "Похоже шпион не был обнаружен!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>.".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 		else:
-			bot.send_message(group_id, "Поздравляем, вы нашли шпиона!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
+			bot.send_message(group_id, "Поздравляю, вы нашли шпиона!\n\n    Место: {}\n\n    Шпион: <a href='tg://user?id={}'>{}</a>.".format(word, realSpy, getNameFromGameRoom(realSpy)), parse_mode='html')
 	endGame(group_id)
 
 def getGroupbByUsersIDInGame(user_id):
@@ -509,16 +509,16 @@ def wordsPercent(string1, string2):
 
 	if len(s2)/len(s1) * 100 <= 100:
 		percent = len(s2)/len(s1) * 100
-		text = "Совпадение по длине " + str(int(len(s2)/len(s1) * 100))+'%'
+		text = "Совпадение по длине " + str(int(len(s2)/len(s1) * 100))+'%.'
 	else:
 		percent = len(s1)/len(s2) * 100
-		text =  "Совпадение по длине " + str(int(len(s1)/len(s2) * 100))+'%'
+		text =  "Совпадение по длине " + str(int(len(s1)/len(s2) * 100))+'%.'
 	if percent == 100:
 		p = 0
 		for i in range(len(s1)):
 			if s1[i] == s2[i] and ((s1[i].isalpha() and s2[i].isalpha()) or s1[i] == " "):
 				p += 1
-		return text + "\nСовпадение по буквам " + str(int(p/len(s1)*100))+'%'
+		return text + "\nСовпадение по буквам " + str(int(p/len(s1)*100))+'%.'
 	else:
 		return text
 
@@ -534,15 +534,15 @@ def getGroupsWord(group_id):
 def checkingAnswer(message, group_id):
 	word = getGroupsWord(group_id)
 	if message.text.lower() == word.lower():
-		bot.send_message(message.from_user.id, "Браво, абсолютно верно!")
+		bot.send_message(message.from_user.id, "Абсолютно верно, победа за Вами!")
 		SpyWins(group_id)
 	else:
-		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз - /answer")
+		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз - /answer.")
 
 def SpyWins(group_id):
 	key = types.InlineKeyboardMarkup()
 	# key.add(types.InlineKeyboardButton("Сыграть еще раз!", callback_data="game"))
-	bot.send_message(group_id, "Поздравляем шпиона <a href='tg://user?id={}'>{}</a> с победой!\n\n    Место: {}\n\nСыграем еще раз? /game".format(getSpyID(group_id), getNameFromGameRoom(getSpyID(group_id)), getGroupsWord(group_id)), parse_mode='html', reply_markup=key)
+	bot.send_message(group_id, "Поздравляю шпиона <a href='tg://user?id={}'>{}</a> с победой!\n\n    Место: {}\n\nСыграем еще раз?".format(getSpyID(group_id), getNameFromGameRoom(getSpyID(group_id)), getGroupsWord(group_id)), parse_mode='html', reply_markup=key)
 	endGame(group_id)
 
 def getMyAdmins():
@@ -590,8 +590,8 @@ def editToGroupSettings(data, user_id, message_id):
 	group_id = getNumberFromCall(data, 's')
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Изменить максимальное число игроков", callback_data=str(group_id) + "maxgamers"))
-	key.add(types.InlineKeyboardButton("Изменить время игры", callback_data=str(group_id) + "time"))
-	key.add(types.InlineKeyboardButton("Изменить время регистрации", callback_data=str(group_id) + "inviting"))
+	key.add(types.InlineKeyboardButton("Изменить длительность игры", callback_data=str(group_id) + "time"))
+	key.add(types.InlineKeyboardButton("Изменить длительность регистрации", callback_data=str(group_id) + "inviting"))
 	key.add(types.InlineKeyboardButton("⬅️Обратно в выбор группы", callback_data="groupsettings"))
 	try:
 		bot.edit_message_text("Настройки", user_id, message_id, reply_markup=key)
@@ -601,7 +601,7 @@ def editToGroupSettings(data, user_id, message_id):
 def changeMaxGamers(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 'm')
 	try:
-		bot.edit_message_text("Введите максимальное количество игроков", user_id, message_id)
+		bot.edit_message_text("Введите максимальное количество игроков.", user_id, message_id)
 	except Exception:
 		pass	
 	bot.register_next_step_handler(message, maxGamers, old_message_id=message_id, group_id=group_id)
@@ -617,11 +617,11 @@ def maxGamers(message, old_message_id, group_id):
 		cursor.execute("UPDATE settings SET gamers = '%d' WHERE grpID = '%d'" % (int(message.text), group_id))
 		conn.commit()
 		conn.close()
-		changeToSettings("Максимальное число игроков изменено", message.chat.id, old_message_id)
+		changeToSettings("Максимальное количество игроков изменено.", message.chat.id, old_message_id)
 	elif message.text.isdigit():
-		changeToSettings("Максимальное число не может быть больше числа пользователей", message.chat.id, old_message_id)
+		changeToSettings("Максимальное количество не может быть больше количества участников беседы.", message.chat.id, old_message_id)
 	else:
-		changeToSettings("Число игроков не было изменено", message.chat.id, old_message_id)
+		changeToSettings("Количество игроков не было изменено.", message.chat.id, old_message_id)
 
 def changeInviteTime(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 'i')
@@ -725,8 +725,10 @@ def admsendmsg(message):
 def admsendingmsg(message, user_id):
 	if message.text == "/cancel":
 		return
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
 	try:
-		bot.send_message(user_id, message.text, parse_mode='html')
+		bot.send_message(user_id, message.text, reply_markup=key, parse_mode='html')
 		bot.send_message(message.from_user.id, "Сообщение отправлено")
 	except Exception:
 		bot.send_message(message.from_user.id, "Ошибка")
@@ -749,13 +751,13 @@ def numGamersForOFflineGame(message, chat_id, old_message_id):
 	elif message.text.isdigit():
 		bot.delete_message(message.chat.id, message.message_id)
 		try:
-			bot.edit_message_text("<b>Оффлайн игра</b>\nНедостаточно игроков для начала игры", message.chat.id, message_id=old_message_id, parse_mode='html')
+			bot.edit_message_text("<b>Оффлайн игра</b>\nНедостаточно игроков для начала игры.", message.chat.id, message_id=old_message_id, parse_mode='html')
 		except Exception:
 			pass
 	else:
 		bot.delete_message(message.chat.id, message.message_id)
 		try:
-			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только число игроков", message.chat.id, message_id=old_message_id, parse_mode='html')
+			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только количество игроков.", message.chat.id, message_id=old_message_id, parse_mode='html')
 		except Exception:
 			pass
 		bot.register_next_step_handler(message, numGamersForOFflineGame, chat_id, old_message_id)
@@ -777,7 +779,7 @@ def setOfflineSpy(user_id, message_id):
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton(text="Поехали", callback_data="1offlinerole"))
 	try:
-		bot.edit_message_text("<b>Оффлайн игра</b>\nВсе готово, можем начинать.\nДержи телефон так, чтобы твои друзья не видели место, в которое мы сейчас переместимся", user_id, message_id=message_id, reply_markup=key, parse_mode='html')
+		bot.edit_message_text("<b>Оффлайн игра</b>\nВсе готово, можем начинать.\nДержи телефон так, чтобы твои друзья не видели место, в которое мы сейчас переместимся.", user_id, message_id=message_id, reply_markup=key, parse_mode='html')
 	except Exception:
 		pass
 	
@@ -839,7 +841,7 @@ def whenToEndOfflineGame(user_id, date, endTime):
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
-			bot.send_message(user_id, "<i>До окончания игры осталось " + str(endTime-timing)+" секунд</i>", parse_mode="html")
+			bot.send_message(user_id, "<i>До окончания игры осталось " + str(endTime-timing)+" секунд</i>.", parse_mode="html")
 		print("whenToEndOfflineGame")
 
 def find_all_by_key(iterable, key, value):
@@ -952,7 +954,7 @@ def start(message):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
 		key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
-		bot.send_message(message.chat.id, "Привет! Я бот игры \"Шпион\", для начала игры дай мне права администратора!\nА чтобы я мог с тобой общаться, переходи в диалог со мной и жми /start", reply_markup=key)
+		bot.send_message(message.chat.id, "Привет! Я бот игры \"Шпион\", для начала игры дай мне права администратора!\nА чтобы я мог с тобой общаться, переходи в диалог со мной и жми /start.", reply_markup=key)
 	elif message.chat.type == 'private':
 		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион. Рад, что мы теперь знакомы!")
 		help(message)
@@ -970,6 +972,8 @@ def startPollNow(message):
 		individualPoll(message.chat.id)
 		t = threading.Thread(target=whenToEndPoll, name="Thread2Poll{}".format(str(message.chat.id), args=(message.chat.id, getTimeAfterPoll(message.chat.id))))
 		t.start()
+	elif message.chat.type == 'private':
+		bot.send_message(message.chat.id, "Команда используется только в беседе во время игры.")
 
 # @bot.message_handler(commands=['game'])
 def game(message):
@@ -989,6 +993,8 @@ def game(message):
 		t._delete()
 		if gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) == None:
 			gameStarting(message.chat.id)
+	elif message.chat.type == 'private':
+		bot.send_message(message.chat.id, "Команда используется только в беседе во время игры.")
 
 
 # @bot.message_handler(commands=['end'])
@@ -996,6 +1002,8 @@ def end(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and (message.from_user.id in getAdmins(message.chat.id) or isMyAdmin(message.from_user.id)):
 		bot.send_message(message.chat.id, "Игра окончена!")
 		endGame(message.chat.id)
+	elif message.chat.type == 'private':
+		bot.send_message(message.chat.id, "Команда используется только в беседе во время игры.")
 
 # @bot.message_handler(commands=['rules'])
 def rules(message):
@@ -1044,6 +1052,8 @@ def leave(message):
 			conn.commit()
 			conn.close()
 			bot.send_message(message.chat.id, "<i><a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+	elif message.chat.type == 'private':
+		bot.send_message(message.chat.id, "Команда используется только в беседе во время игры.")
 
 def delword(message):
 	if isMyAdmin(message.from_user.id):
@@ -1106,15 +1116,17 @@ def offlineGame(message):
 			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nНачнем новую игру?", reply_markup=key, parse_mode='html')
 		else:
 			conn.close()
-			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nВведите количество игроков для начала игры", parse_mode='html')
+			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nДля начала игры пришли мне количество игроков.", parse_mode='html')
 			bot.register_next_step_handler(message, numGamersForOFflineGame, old_message.chat.id, old_message.message_id)
+	else:
+		bot.send_message(message.chat.id, "Команда используется только в личном чате.")
 
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
 	print(c.data)
 	if c.data == 'permissions':
 		if checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
-			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
+			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game.")
 	# if c.data == 'game':
 	# 	game(c.message)
 	elif c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
@@ -1130,18 +1142,18 @@ def inline(c):
 		elif addReturn == 2:
 			key = types.InlineKeyboardMarkup()
 			key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
-			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалог".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
+			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалогю".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
 			return
 		elif addReturn == 4:
 			key = types.InlineKeyboardMarkup()
 			key.add(types.InlineKeyboardButton("Возобновим?", url="t.me/findspy_bot"))
-			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> приостановил личный диалог".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
+			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> приостановил личный диалог.".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
 			return
 		editInvite(c.message.chat.id)
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
 	elif c.data == "feedback":
-		bot.send_message(c.message.chat.id, "Напишите мне сообщение, я передам его администратору.\n\n/cancel для отмены")
+		bot.send_message(c.message.chat.id, "Напишите мне сообщение, я передам его администратору.\n\n/cancel для отмены.")
 		bot.register_next_step_handler(c.message, feedback)
 	elif c.data == "updategameroom":
 		showgameroom(c.message, c.message.message_id)
@@ -1154,7 +1166,7 @@ def inline(c):
 		conn.commit()
 		conn.close()
 		try:
-			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите количество игроков для начала игры", c.message.chat.id, c.message.message_id, parse_mode='html')
+			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите количество игроков для начала игры.", c.message.chat.id, c.message.message_id, parse_mode='html')
 		except Exception:
 			pass
 		bot.register_next_step_handler(c.message, numGamersForOFflineGame, c.message.chat.id, c.message.message_id)
@@ -1185,7 +1197,7 @@ def inline(c):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Готов", callback_data=str(id)+"offlinerole"))
 		try:
-			bot.edit_message_text("Держи телефон так, чтобы твои друзья не видели место, в которое мы сейчас переместимся", c.message.chat.id, c.message.message_id, reply_markup=key, parse_mode='html')
+			bot.edit_message_text("Держи телефон так, чтобы твои друзья не видели место, в которое мы сейчас переместимся.", c.message.chat.id, c.message.message_id, reply_markup=key, parse_mode='html')
 		except Exception:
 			pass
 	elif "offlinerole" in c.data:
@@ -1199,7 +1211,7 @@ def inline(c):
 		conn.close()
 		setOfflineSpy(c.message.chat.id, c.message.message_id)
 	elif "answer2user" in c.data:
-		bot.send_message(c.message.chat.id, "Ответ пользователю.\n\n/cancel для отмены")
+		bot.send_message(c.message.chat.id, "Ответ пользователю.\n\n/cancel для отмены.")
 		bot.register_next_step_handler(c.message, answerToUser, c.data)
 	elif "settings" in c.data:
 		editToGroupSettings(c.data, c.message.chat.id, c.message.message_id)
