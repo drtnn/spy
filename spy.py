@@ -592,7 +592,7 @@ def editToGroupSettings(data, user_id, message_id):
 	key.add(types.InlineKeyboardButton("Изменить максимальное число игроков", callback_data=str(group_id) + "maxgamers"))
 	key.add(types.InlineKeyboardButton("Изменить длительность игры", callback_data=str(group_id) + "time"))
 	key.add(types.InlineKeyboardButton("Изменить длительность регистрации", callback_data=str(group_id) + "inviting"))
-	key.add(types.InlineKeyboardButton("⬅️Обратно в выбор группы", callback_data="groupsettings"))
+	key.add(types.InlineKeyboardButton("⬅️Обратно к выбору группы", callback_data="groupsettings"))
 	try:
 		bot.edit_message_text("Настройки", user_id, message_id, reply_markup=key)
 	except Exception:
@@ -964,7 +964,7 @@ def help(message):
 	key = types.InlineKeyboardMarkup()
 	if message.chat.type == 'private':
 		key.add(types.InlineKeyboardButton("Обратная связь", callback_data="feedback"))
-	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".\nПодробные правила можно игры можно найти по команде /rules.\n\nИзменить количество игроков, время игры и многое другое может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html', reply_markup=key)
+	bot.send_message(message.chat.id, '<b>Что нужно для начала?￼</b>\n* Добавить меня в актуальную беседу\n* Выдать права администратора\n* Начать игру /game\n\nДля участия в первый раз каждый, желающий играть, должен перейти ко мне в диалог и нажать "Старт".\nПодробные правила можно игры можно найти по команде /rules.\n\nИзменить количество игроков, длительность игры и многое другое может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html', reply_markup=key)
 
 # @bot.message_handler(commands=['startpoll'])
 def startPollNow(message):
@@ -1234,7 +1234,7 @@ def inline(c):
 		cursor.execute("UPDATE settings SET inviteTime = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
 		conn.commit()
 		conn.close()
-		changeToSettings("Время регистрации изменено.", c.message.chat.id, c.message.message_id)
+		changeToSettings("Длительность регистрации изменена.", c.message.chat.id, c.message.message_id)
 	elif "chtime" in c.data:
 		newTime = getNumberFromCall(c.data, "_")
 		group_id = getNumberFromLetterToCall(c.data, "_", "c")
@@ -1243,7 +1243,7 @@ def inline(c):
 		cursor.execute("UPDATE settings SET time = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
 		conn.commit()
 		conn.close()
-		changeToSettings("Максимальное время игры изменено.", c.message.chat.id, c.message.message_id)
+		changeToSettings("Длительность игры изменена.", c.message.chat.id, c.message.message_id)
 	elif "time" in c.data:
 		changeMaxTime(c.message, c.data, c.message.chat.id, c.message.message_id)
 	elif "cleancache" in c.data:
