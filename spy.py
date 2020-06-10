@@ -13,10 +13,14 @@ import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
 
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
+
+def dbConnect():
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	return conn
 
 def getWord():
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -693,6 +697,7 @@ def showgameroom(message, message_id):
 	text = ""
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Update", callback_data="updategameroom"))
+	key.add(types.InlineKeyboardButton("Back", callback_data="admpanel"))
 	if (word == None or word[0] == None) and message_id == 0:
 		bot.send_message(message.chat.id, "<b>gameroom is clean\n</b>", reply_markup=key, parse_mode="html")
 		return
@@ -894,57 +899,29 @@ def AllHandler(message):
 		help(message)
 	elif message.text == '/leave' or message.text == '/leave@findspy_bot':
 		leave(message)
-	elif message.text == '/getgroups' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-		cursor = conn.cursor()
-		cursor.execute("SELECT COUNT(*) FROM groups")
-		groups = cursor.fetchone()
-		cursor.execute("SELECT grpID FROM groups")
-		word = cursor.fetchone()
-		text = ""
-		while word != None:
-			try:
-				text += (bot.get_chat(word[0]).title + "\n")
-			except Exception:
-				text += "no title\n"
-			word = cursor.fetchone()
-		conn.close()
-		bot.send_message(message.from_user.id, "<b>Всего групп - {}</b>\n{}".format(groups[0], text), parse_mode="html")
-	elif message.text == '/addword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		bot.send_message(message.from_user.id, "Присылай новое слово!")
-		bot.register_next_step_handler(message, addword)
-	elif message.text == '/showords' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-		cursor = conn.cursor()
-		cursor.execute("SELECT word FROM words")
-		word = cursor.fetchone()
-		text = ""
-		while word != None:
-			text += (word[0] + "\n")
-			word = cursor.fetchone()
-		conn.close()
-		bot.send_message(message.from_user.id, "<b>Список слов\n</b>" + text, parse_mode="html")
-	elif message.text == '/delword' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		bot.send_message(message.from_user.id, "Присылай слово", parse_mode="html")
-		bot.register_next_step_handler(message, delword)
-	elif message.text == '/countgamers' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-		cursor = conn.cursor()
-		cursor.execute("SELECT COUNT(*) FROM users")
-		gamers = cursor.fetchone()
-		conn.close()
-		bot.send_message(message.from_user.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
-	elif message.text == '/showgameroom' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		showgameroom(message, 0)
-	elif message.text == '/admrass' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		bot.send_message(message.from_user.id, "Рассылка\n\n/cancel для отмены")
-		bot.register_next_step_handler(message, admrass)
-	elif message.text == '/admsendmsg' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
-		bot.send_message(message.from_user.id, "Пришлите user_id\n\n/cancel для отмены")
-		bot.register_next_step_handler(message, admsendmsg)
 	elif message.text == '/offlinegame' or message.text == '/offlinegame@findspy_bot':
 		offlineGame(message)
+	elif message.text == '/admpanel' and isMyAdmin(message.from_user.id) and message.chat.type == 'private':
+		adminPanel(message)
 
+def adminPanel(message, message_id=0):
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Actual word", callback_data="admword"))
+	key.add(types.InlineKeyboardButton("Get groups", callback_data="getgroups"))
+	key.add(types.InlineKeyboardButton("Add word", callback_data="addword"))
+	key.add(types.InlineKeyboardButton("Show words", callback_data="showords"))
+	key.add(types.InlineKeyboardButton("Delete word", callback_data="delword"))
+	key.add(types.InlineKeyboardButton("Number of users", callback_data="countgamers"))
+	key.add(types.InlineKeyboardButton("GameRoom", callback_data="updategameroom"))
+	key.add(types.InlineKeyboardButton("Mailing", callback_data="admrass"))
+	key.add(types.InlineKeyboardButton("Send message", callback_data="admsendmsg"))
+	if message_id == 0:
+		bot.send_message(message.chat.id, "<b>Admin panel</b>", parse_mode='html', reply_markup=key)
+	else:
+		try:
+			bot.edit_message_text("<b>Admin panel</b>", message.chat.id, message_id, parse_mode='html', reply_markup=key)
+		except Exception:
+			pass
 
 # @bot.message_handler(commands=['start'])
 def start(message):
@@ -960,6 +937,7 @@ def start(message):
 		help(message)
 		addUser(message.from_user.id)
 
+# @bot.message_handler(commands=['help'])
 def help(message):
 	key = types.InlineKeyboardMarkup()
 	if message.chat.type == 'private':
@@ -979,6 +957,12 @@ def startPollNow(message):
 def game(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id, bot.get_me().id) == 0:
 		key = types.InlineKeyboardMarkup()
+		try:
+			bot.send_message(message.from_user.id, 'Вы создали приглашение в {}'.format(bot.get_chat(message.chat.id).title))
+		except Exception:
+			key.add(types.InlineKeyboardButton("Возобновим?", url="t.me/findspy_bot"))
+			bot.send_message(message.chat.id, "<a href='tg://user?id={}'>{}</a> приостановил личный диалог.".format(message.from_user.id, message.from_user.first_name), parse_mode='html', reply_markup=key)
+			return
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
 		invite_message = bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
 		inviteID(invite_message.chat.id, invite_message.message_id)
@@ -1103,6 +1087,7 @@ def admrass(message):
 		row = cursor.fetchone()
 	conn.close()
 
+# @bot.message_handler(commands=['offlinegame'])
 def offlineGame(message):
 	if message.chat.type == 'private':
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -1192,6 +1177,54 @@ def inline(c):
 		offlineGameEnd(c.message.chat.id, c.message.message_id, c.message.date)
 	elif c.data == "endofflinegame":
 		offlineGameEnd(c.message.chat.id, c.message.message_id, None)
+	elif c.data == 'getgroups':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT COUNT(*) FROM groups")
+		groups = cursor.fetchone()
+		cursor.execute("SELECT grpID FROM groups")
+		word = cursor.fetchone()
+		text = ""
+		while word != None:
+			try:
+				text += (bot.get_chat(word[0]).title + "\n")
+			except Exception:
+				text += "no title\n"
+			word = cursor.fetchone()
+		conn.close()
+		bot.send_message(c.message.chat.id, "<b>Всего групп - {}</b>\n{}".format(groups[0], text), parse_mode="html")
+	elif c.data == 'addword':
+		bot.send_message(c.message.chat.id, "Присылай новое слово!")
+		bot.register_next_step_handler(c.message, addword)
+	elif c.data == 'showords':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT word FROM words")
+		word = cursor.fetchone()
+		text = ""
+		while word != None:
+			text += (word[0] + "\n")
+			word = cursor.fetchone()
+		conn.close()
+		bot.send_message(c.message.chat.id, "<b>Список слов\n</b>" + text, parse_mode="html")
+	elif c.data == 'delword':
+		bot.send_message(c.message.chat.id, "Присылай слово", parse_mode="html")
+		bot.register_next_step_handler(c.message, delword)
+	elif c.data == 'countgamers':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute("SELECT COUNT(*) FROM users")
+		gamers = cursor.fetchone()
+		conn.close()
+		bot.send_message(c.message.chat.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
+	elif c.data == 'admrass':
+		bot.send_message(c.message.chat.id, "Рассылка\n\n/cancel для отмены")
+		bot.register_next_step_handler(c.message, admrass)
+	elif c.data == 'admsendmsg':
+		bot.send_message(c.message.chat.id, "Пришлите user_id\n\n/cancel для отмены")
+		bot.register_next_step_handler(c.message, admsendmsg)
+	elif c.data == 'admpanel':
+		adminPanel(c.message, c.message.message_id)
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
