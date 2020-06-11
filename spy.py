@@ -1001,12 +1001,13 @@ def game(message):
 		t._delete()
 		if gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) == None:
 			gameStarting(message.chat.id)
+	elif message.chat.type == 'private':
+		offlineGame(message)
 	elif checkPermissions(message.chat.id) == 1:
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
 		bot.send_message(message.chat.id, "<b>Похоже я еще не получил права администратора.</b>\n* Удалять сообщения\n* Блокировать пользователей\n* Закреплять сообщения", parse_mode='html', reply_markup=key)
-	elif message.chat.type == 'private':
-		offlineGame(message)
+
 
 
 # @bot.message_handler(commands=['end'])
