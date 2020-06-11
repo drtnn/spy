@@ -603,12 +603,15 @@ def editToGroupSettings(data, user_id, message_id):
 def changeMaxGamers(message, data, user_id, message_id):
 	group_id = getNumberFromCall(data, 'm')
 	try:
-		bot.edit_message_text("Введите максимальное количество игроков.", user_id, message_id)
+		bot.edit_message_text("Введите максимальное количество игроков.\n\n/cancel для отмены.", user_id, message_id)
 	except Exception:
 		pass	
 	bot.register_next_step_handler(message, maxGamers, old_message_id=message_id, group_id=group_id)
 
 def maxGamers(message, old_message_id, group_id):
+	if message.text == '/cancel':
+		changeToSettings("Количество игроков не было изменено.", message.chat.id, old_message_id)
+		return
 	try:
 		bot.delete_message(message.chat.id, message.message_id)
 	except Exception:
@@ -737,6 +740,15 @@ def admsendingmsg(message, user_id):
 		bot.send_message(message.from_user.id, "Ошибка")
 
 def numGamersForOFflineGame(message, chat_id, old_message_id):
+	if message.text == '/cancel':
+		try:
+			bot.delete_message(message.chat.id, message.message_id)
+		except Exception:
+			pass
+		try:
+			bot.edit_message_text("Игра отменена.", chat_id, old_message_id)
+		except Exception:
+			pass
 	if message.text.isdigit() and int(message.text) >= 4:
 		try:
 			bot.delete_message(message.chat.id, message.message_id)
@@ -769,7 +781,7 @@ def numGamersForOFflineGame(message, chat_id, old_message_id):
 		except Exception:
 			pass
 		try:
-			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только количество игроков.", message.chat.id, message_id=old_message_id, parse_mode='html')
+			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только количество игроков.\n\n/cancel для отмены.", message.chat.id, message_id=old_message_id, parse_mode='html')
 		except Exception:
 			pass
 		bot.register_next_step_handler(message, numGamersForOFflineGame, chat_id, old_message_id)
@@ -1130,7 +1142,7 @@ def offlineGame(message):
 			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nНачнем новую игру?", reply_markup=key, parse_mode='html')
 		else:
 			conn.close()
-			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nДля начала игры пришли мне количество игроков.", parse_mode='html')
+			old_message = bot.send_message(message.chat.id, "<b>Оффлайн игра</b>\nДля начала игры пришли мне количество игроков.\n\n/cancel для отмены.", parse_mode='html')
 			bot.register_next_step_handler(message, numGamersForOFflineGame, old_message.chat.id, old_message.message_id)
 	else:
 		bot.send_message(message.chat.id, "Команда используется только в личном чате.")
@@ -1194,7 +1206,7 @@ def inline(c):
 		conn.commit()
 		conn.close()
 		try:
-			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите количество игроков для начала игры.", c.message.chat.id, c.message.message_id, parse_mode='html')
+			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите количество игроков для начала игры.\n\n/cancel для отмены.", c.message.chat.id, c.message.message_id, parse_mode='html')
 		except Exception:
 			pass
 		bot.register_next_step_handler(c.message, numGamersForOFflineGame, c.message.chat.id, c.message.message_id)
