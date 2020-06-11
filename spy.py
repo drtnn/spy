@@ -13,8 +13,8 @@ import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
 
-# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
 
@@ -178,15 +178,13 @@ def getAdmins(group_id):
 			admins.append(i.user.id)
 	return admins
 
-def checkPermissions(group_id, bot_id):
+def checkPermissions(group_id):
+	bot_id = bot.get_me().id
 	botPermissions = bot.get_chat_member(group_id, bot_id)
 	if botPermissions.can_restrict_members == True and botPermissions.can_delete_messages == True and botPermissions.can_pin_messages == True:
 		# bot.send_message(group_id, "Отлично, права администратора получил. Для начала игры просто напишите /game")
 		return 0
 	else:
-		key = types.InlineKeyboardMarkup()
-		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
-		bot.send_message(group_id, "Похоже я еще не получил права администратора.\nЯ не читаю и не отслеживаю ваши сообщения!", reply_markup=key)
 		return 1
 
 def inviteID(group_id, invite_id):
@@ -740,7 +738,10 @@ def admsendingmsg(message, user_id):
 
 def numGamersForOFflineGame(message, chat_id, old_message_id):
 	if message.text.isdigit() and int(message.text) >= 4:
-		bot.delete_message(message.chat.id, message.message_id)
+		try:
+			bot.delete_message(message.chat.id, message.message_id)
+		except Exception:
+			pass
 		numOfGamers = int(message.text)
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
@@ -754,13 +755,19 @@ def numGamersForOFflineGame(message, chat_id, old_message_id):
 		except Exception:
 			pass
 	elif message.text.isdigit():
-		bot.delete_message(message.chat.id, message.message_id)
+		try:
+			bot.delete_message(message.chat.id, message.message_id)
+		except Exception:
+			pass
 		try:
 			bot.edit_message_text("<b>Оффлайн игра</b>\nНедостаточно игроков для начала игры.", message.chat.id, message_id=old_message_id, parse_mode='html')
 		except Exception:
 			pass
 	else:
-		bot.delete_message(message.chat.id, message.message_id)
+		try:
+			bot.delete_message(message.chat.id, message.message_id)
+		except Exception:
+			pass
 		try:
 			bot.edit_message_text("<b>Оффлайн игра</b>\nВведите только количество игроков.", message.chat.id, message_id=old_message_id, parse_mode='html')
 		except Exception:
@@ -811,7 +818,10 @@ def offlineGameEnd(user_id, message_id, date):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
 	if date == None:
-		bot.delete_message(user_id, message_id)
+		try:
+			bot.delete_message(user_id, message_id)
+		except Exception:
+			pass
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Новая игра", callback_data="edittooffline"))
 		bot.send_message(user_id, "<b>Игра окончена!</b>\n*Никогда не поздно сыграть еще раз*", reply_markup=key, parse_mode='html')
@@ -823,7 +833,10 @@ def offlineGameEnd(user_id, message_id, date):
 	startTime = cursor.fetchone()
 	if startTime == None or startTime[0] != date:
 		return
-	bot.delete_message(user_id, message_id)
+	try:
+		bot.delete_message(user_id, message_id)
+	except Exception:
+		pass
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("Новая игра", callback_data="edittooffline"))
 	bot.send_message(user_id, "<b>Игра окончена!</b>\n*Никогда не поздно сыграть еще раз*", reply_markup=key, parse_mode='html')
@@ -878,7 +891,10 @@ def AllHandler(message):
 		except Exception:
 			pass
 		if message.chat.type == 'supergroup':
-			bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
+			try:
+				bot.restrict_chat_member(message.chat.id, message.from_user.id, message.date + 30, can_send_messages=False, can_send_media_messages=False, can_send_other_messages=False)
+			except Exception:
+				pass
 	elif message.text == '/start' or message.text == '/start@findspy_bot':
 		start(message)
 	elif message.text == '/end' or message.text == '/end@findspy_bot':
@@ -926,16 +942,24 @@ def adminPanel(message, message_id=0):
 # @bot.message_handler(commands=['start'])
 def start(message):
 	if message.chat.type == 'supergroup' or message.chat.type == 'group':
+		key = types.InlineKeyboardMarkup()
 		if addGroup(message.chat.id) == 0:
 			admSettings(message.chat.id)
-		key = types.InlineKeyboardMarkup()
-		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
-		key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
-		bot.send_message(message.chat.id, "Привет! Я бот игры \"Шпион\", для начала игры дай мне права администратора!\nА чтобы я мог с тобой общаться, переходи в диалог со мной и жми /start.", reply_markup=key)
+		if checkPermissions(message.chat.id) == 0:
+			key.add(types.InlineKeyboardButton("Начать игру", callback_data="startgame"))
+			bot.send_message(message.chat.id, "<b>Все готово для того, чтобы начинать.</b>\nЖми на кнопку и стартуем!", reply_markup=key, parse_mode='html')
+		else:
+			key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
+			key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
+			bot.send_message(message.chat.id, "Привет! Я бот-ведущий игры 🕵️‍♂️Шпион.\n* Для начала игры выдай мне права администратора!\n* А чтобы я мог с тобой общаться, переходи в личный диалог со мной и жми \"Старт\".", reply_markup=key)
 	elif message.chat.type == 'private':
-		bot.send_message(message.chat.id, "Привет! Я бот игры Шпион. Рад, что мы теперь знакомы!")
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("Добавить игру в свою беседу", url="tg://resolve?domain=findspy_bot&startgroup="))
+		if addUser(message.from_user.id) == 0:
+			bot.send_message(message.chat.id, "Привет! Я бот-ведущий игры 🕵️‍♂️Шпион. Рад, что мы теперь знакомы!", reply_markup=key)
+		else:
+			bot.send_message(message.chat.id, "Привет! Я бот-ведущий игры 🕵️‍♂️Шпион.", reply_markup=key)
 		help(message)
-		addUser(message.from_user.id)
 
 # @bot.message_handler(commands=['help'])
 def help(message):
@@ -955,7 +979,7 @@ def startPollNow(message):
 
 # @bot.message_handler(commands=['game'])
 def game(message):
-	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id, bot.get_me().id) == 0:
+	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id) == 0:
 		key = types.InlineKeyboardMarkup()
 		try:
 			bot.send_message(message.from_user.id, 'Вы создали приглашение в {}'.format(bot.get_chat(message.chat.id).title))
@@ -977,8 +1001,12 @@ def game(message):
 		t._delete()
 		if gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) == None:
 			gameStarting(message.chat.id)
+	elif checkPermissions(message.chat.id) == 1:
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
+		bot.send_message(message.chat.id, "<b>Похоже я еще не получил права администратора.</b>\n* Удалять сообщения\n* Блокировать пользователей\n* Закреплять сообщения", parse_mode='html', reply_markup=key)
 	elif message.chat.type == 'private':
-		bot.send_message(message.chat.id, "Команда используется только в беседе во время игры.")
+		offlineGame(message)
 
 
 # @bot.message_handler(commands=['end'])
@@ -1110,31 +1138,45 @@ def offlineGame(message):
 def inline(c):
 	print(c.data)
 	if c.data == 'permissions':
-		if checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
-			bot.send_message(c.message.chat.id, "Отлично, права администратора получил. Для начала игры просто напишите /game.")
-	# if c.data == 'game':
-	# 	game(c.message)
-	elif c.data == 'connect' and checkPermissions(c.message.chat.id, c.message.from_user.id) == 0:
-		addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
-		if addReturn == 3:
+		key = types.InlineKeyboardMarkup()
+		if checkPermissions(c.message.chat.id) == 0:
+			key = types.InlineKeyboardMarkup()
+			key.add(types.InlineKeyboardButton("Начать игру", callback_data="startgame"))
+			bot.send_message(c.message.chat.id, "<b>Все готово для того, чтобы начинать.</b>\nЖми на кнопку и стартуем!", reply_markup=key, parse_mode='html')
+		else:
+			key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
+			bot.send_message(c.message.chat.id, "<b>Похоже я еще не получил права администратора.</b>\n* Удалять сообщения\n* Блокировать пользователей\n* Закреплять сообщения", parse_mode='html', reply_markup=key)
+	elif c.data == 'connect':
+		if checkPermissions(c.message.chat.id) == 0:
+			addReturn = addUserToGame(c.message.chat.id, c.from_user.id, c.from_user.first_name)
+			if addReturn == 3:
+				try:
+					bot.delete_message(c.message.chat.id, c.message.message_id)
+				except Exception:
+					pass
+				return
+			elif addReturn == 1:
+				return
+			elif addReturn == 2:
+				key = types.InlineKeyboardMarkup()
+				key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
+				bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалогю".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
+				return
+			elif addReturn == 4:
+				key = types.InlineKeyboardMarkup()
+				key.add(types.InlineKeyboardButton("Возобновим?", url="t.me/findspy_bot"))
+				bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> приостановил личный диалог.".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
+				return
+			editInvite(c.message.chat.id)
+		else:
+			key = types.InlineKeyboardMarkup()
+			key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
+			bot.send_message(c.message.chat.id, "<b>Для продолжения игры выдайте мне права администратора.</b>\n* Удалять сообщения\n* Блокировать пользователей\n* Закреплять сообщения", parse_mode='html', reply_markup=key)
 			try:
-				bot.delete_message(c.message.chat.id, c.message.message_id)
+				bot.delete_message(c.message.chat.id, getInviteID(c.message.chat.id))
 			except Exception:
 				pass
-			return
-		elif addReturn == 1:
-			return
-		elif addReturn == 2:
-			key = types.InlineKeyboardMarkup()
-			key.add(types.InlineKeyboardButton("Познакомимся?", url="t.me/findspy_bot"))
-			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> все еще не перешел в личный диалогю".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
-			return
-		elif addReturn == 4:
-			key = types.InlineKeyboardMarkup()
-			key.add(types.InlineKeyboardButton("Возобновим?", url="t.me/findspy_bot"))
-			bot.send_message(c.message.chat.id, "<a href='tg://user?id={}'>{}</a> приостановил личный диалог.".format(c.from_user.id, c.from_user.first_name), parse_mode='html', reply_markup=key)
-			return
-		editInvite(c.message.chat.id)
+			endGame(c.message.chat.id)
 	elif c.data == "groupsettings":
 		changeToSettings("Выберите", c.message.chat.id, c.message.message_id)
 	elif c.data == "feedback":
@@ -1156,7 +1198,10 @@ def inline(c):
 			pass
 		bot.register_next_step_handler(c.message, numGamersForOFflineGame, c.message.chat.id, c.message.message_id)
 	elif c.data == "delete_message":
-		bot.delete_message(c.message.chat.id, c.message.message_id)
+		try:
+			bot.delete_message(c.message.chat.id, c.message.message_id)
+		except Exception:
+			pass
 	elif c.data == "rolesgiven":
 		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 		cursor = conn.cursor()
@@ -1225,6 +1270,13 @@ def inline(c):
 		bot.register_next_step_handler(c.message, admsendmsg)
 	elif c.data == 'admpanel':
 		adminPanel(c.message, c.message.message_id)
+	elif c.data == "startgame":
+		try:
+			bot.delete_message(c.message.chat.id, c.message.message_id)
+		except Exception:
+			pass
+		c.message.from_user = c.from_user
+		game(c.message)
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
