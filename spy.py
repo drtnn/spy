@@ -13,8 +13,8 @@ import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
 
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
 
@@ -41,7 +41,7 @@ def newGame(group_id, user_id, name):
 	if cursor.fetchone() == None:
 		conn.close()
 		return 2
-	numFromSettings = getNumberOfGamersByGroupId(group_id)
+	numFromSettings = getNumberOfGamersByGroupIdFromSettings(group_id)
 	gamersFromGameRoom = getGamersByGroupId(group_id)
 	if numFromSettings != None and gamersFromGameRoom != None:
 		if len(gamersFromGameRoom) == numFromSettings:
@@ -67,7 +67,7 @@ def addUserToGame(group_id, user_id, name):
 	if cursor.fetchone() == None:
 		conn.close()
 		return 2
-	numFromSettings = getNumberOfGamersByGroupId(group_id)
+	numFromSettings = getNumberOfGamersByGroupIdFromSettings(group_id)
 	gamersFromGameRoom = getGamersByGroupId(group_id)
 	if numFromSettings != None and gamersFromGameRoom != None:
 		if len(gamersFromGameRoom) == numFromSettings:
@@ -232,7 +232,7 @@ def getInviteTime(group_id):
 	if row != None:
 		return row[0]
 
-def getNumberOfGamersByGroupId(group_id):
+def getNumberOfGamersByGroupIdFromSettings(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
 	cursor.execute("SELECT gamers FROM settings WHERE grpID = '%d'" % (group_id))
@@ -360,10 +360,10 @@ def whenToStartPoll(group_id, endTime):
 def whenToEndInvite(group_id, endTime):
 	# print(endTime)
 	# print(len(getGamersByGroupId(group_id)))
-	# print(getNumberOfGamersByGroupId(group_id))
+	# print(getNumberOfGamersByGroupIdFromSettings(group_id))
 	# print(bot.get_chat_members_count(group_id) - 1)
 	timing = 0
-	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupId(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1 and gameIsExisted(group_id) == 0:
+	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupIdFromSettings(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1 and gameIsExisted(group_id) == 0:
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
@@ -1053,23 +1053,23 @@ def leave(message):
 	if gameIsExisted(message.chat.id) == 0 and (message.chat.type == 'supergroup' or message.chat.type == 'group'):
 		spyID = getSpyID(message.chat.id)
 		if spyID == message.from_user.id:
-			bot.send_message(message.chat.id, "<i>Игра завершена.</i>\n\n    Шпион <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+			bot.send_message(message.chat.id, "<b>Игра завершена.</b>\n* Шпион <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 			endGame(message.chat.id)
-		elif spyID == None and getNumberOfGamersByGroupId(message.chat.id) > 1:
+		elif spyID == None and len(getGamersByGroupId(message.chat.id)) > 1:
 			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 			cursor = conn.cursor()
 			cursor.execute("DELETE FROM gameroom WHERE userID = '%d'" % (message.from_user.id))
 			conn.commit()
 			conn.close()
 			editInvite(message.chat.id)
-			bot.send_message(message.chat.id, "<i><a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
-		elif spyID == None and getNumberOfGamersByGroupId(message.chat.id) == 1:
+			bot.send_message(message.chat.id, "* <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+		elif spyID == None and len(getGamersByGroupId(message.chat.id)) == 1:
 			endGame(message.chat.id)
-			bot.send_message(message.chat.id, "<i>Игра завершена.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
-		elif spyID != message.from_user.id and getNumberOfGamersByGroupId(message.chat.id) == 4:
-			bot.send_message(message.chat.id, "<i>Недостаточно игроков для продолжения игры.</i>\n\n    <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+			bot.send_message(message.chat.id, "<b>Игра завершена.</b>\n* <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+		elif spyID != message.from_user.id and len(getGamersByGroupId(message.chat.id)) == 4:
+			bot.send_message(message.chat.id, "<b>Недостаточно игроков для продолжения игры.</b>\n* <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 			endGame(message.chat.id)
-		elif spyID != message.from_user.id and getNumberOfGamersByGroupId(message.chat.id) > 4:
+		elif spyID != message.from_user.id and len(getGamersByGroupId(message.chat.id)) > 4:
 			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 			cursor = conn.cursor()
 			cursor.execute("DELETE FROM gameRoom WHERE userID = '%d'" % (message.from_user.id))
@@ -1077,7 +1077,7 @@ def leave(message):
 			cursor.execute("DELETE FROM poll WHERE userID = '%d'" % (message.from_user.id))
 			conn.commit()
 			conn.close()
-			bot.send_message(message.chat.id, "<i><a href='tg://user?id={}'>{}</a> покидает игру.</i>".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
+			bot.send_message(message.chat.id, "* <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 	elif message.chat.type == 'private':
 		bot.send_message(message.chat.id, "Команда используется только в беседе во время игры.")
 
