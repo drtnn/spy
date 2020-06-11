@@ -749,6 +749,7 @@ def numGamersForOFflineGame(message, chat_id, old_message_id):
 			bot.edit_message_text("Игра отменена.", chat_id, old_message_id)
 		except Exception:
 			pass
+		return
 	if message.text.isdigit() and int(message.text) >= 4:
 		try:
 			bot.delete_message(message.chat.id, message.message_id)
