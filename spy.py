@@ -992,7 +992,7 @@ def startPollNow(message):
 
 # @bot.message_handler(commands=['game'])
 def game(message):
-	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id) == 0:
+	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 1 and checkPermissions(message.chat.id) == 0 and getInviteID(message.chat.id) == None:
 		key = types.InlineKeyboardMarkup()
 		try:
 			bot.send_message(message.from_user.id, 'Вы создали приглашение в {}'.format(bot.get_chat(message.chat.id).title))
@@ -1286,11 +1286,17 @@ def inline(c):
 		adminPanel(c.message, c.message.message_id)
 	elif c.data == "startgame":
 		try:
+			bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
+		except Exception:
+			pass
+		try:
 			bot.delete_message(c.message.chat.id, c.message.message_id)
 		except Exception:
 			pass
-		c.message.from_user = c.from_user
-		game(c.message)
+		if getInviteID(c.message.chat.id) == None:
+			print(1)
+			c.message.from_user = c.from_user
+			game(c.message)
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
