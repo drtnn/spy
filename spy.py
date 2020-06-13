@@ -1329,14 +1329,14 @@ def inline(c):
 	elif c.data == "gitpull":
 		key = control_linux_keys()
 		try:
-			subprocess.call("bash gitpull.sh")
+			subprocess.call("./gitpull.sh")
 			bot.edit_message_text("Git pulled", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "restartbot":
 		key = control_linux_keys()
 		try:
-			subprocess.call("bash restart.sh")
+			subprocess.call("./restart.sh")
 			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
@@ -1344,7 +1344,7 @@ def inline(c):
 		key = control_linux_keys()
 		try:
 			bot.edit_message_text("Stopped", c.message.chat.id, c.message.message_id, reply_markup=key)
-			subprocess.call("bash stop.sh")
+			subprocess.call("./stop.sh")
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif "waitrole" in c.data:
