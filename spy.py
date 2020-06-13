@@ -13,8 +13,8 @@ import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
 
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
 
@@ -141,6 +141,7 @@ def givingRoles(group_id):
 def endGame(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
+	bot.delete_message(group_id, getInviteID(group_id))
 	cursor.execute("DELETE FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	# cursor.execute("DELETE FROM pieceID WHERE grpID = '%d'" % (group_id))
 	# cursor.execute("DELETE FROM spyID WHERE grpID = '%d'" % (group_id))
@@ -288,7 +289,9 @@ def givingWords(group_id):
 	cursor.execute("UPDATE groups SET word = '%s' WHERE grpID = '%d'" % (word, group_id))
 	conn.commit()
 	cursor.execute("SELECT userID FROM gameroom WHERE grpID = '%d' and role = 1" % (group_id))
-	bot.send_message(cursor.fetchone()[0], "<b>Ты – шпион!</b>\nПостарайся понять, о какой локации говорят местные и напиши ее мне /answer [только в личном диалоге].", parse_mode='html')
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Я знаю локацию", callback_data='answerfromspy'))
+	bot.send_message(cursor.fetchone()[0], "<b>Ты – шпион!</b>\nПостарайся понять, о какой локации говорят местные и напиши ее мне после нажатия на кнопку.", parse_mode='html', reply_markup=key)
 	conn.close()
 
 def gameStarting(group_id):
@@ -539,7 +542,9 @@ def checkingAnswer(message, group_id):
 		bot.send_message(message.from_user.id, "Абсолютно верно, победа за Вами!")
 		SpyWins(group_id)
 	else:
-		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз – /answer.")
+		key = types.InlineKeyboardMarkup()
+		key.add(types.InlineKeyboardButton("Я знаю локацию", callback_data="answerfromspy"))
+		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз.", reply_markup=key)
 
 def SpyWins(group_id):
 	key = types.InlineKeyboardMarkup()
@@ -1098,12 +1103,18 @@ def delword(message):
 # @bot.message_handler(commands=['answer'])
 def answer(message):
 	group_id = getGroupbByUsersIDInGame(message.from_user.id)
-	if message.chat.type == 'private' and gameIsExisted(group_id) == 0 and getSpyID(group_id) != None:
-		if getSpyID(group_id) == message.from_user.id:
-			bot.send_message(message.from_user.id, "Можешь написать мне слово, а я его проверю!")
-			bot.register_next_step_handler(message, checkingAnswer, group_id)
-		else:
-			bot.send_message(message.from_user.id, "Ты не шпион или игра еще не началась!")
+	if message.chat.type == 'private' and gameIsExisted(group_id) == 0 and getSpyID(group_id) != None and getSpyID(group_id) == message.from_user.id:
+		bot.send_message(message.from_user.id, "Можешь написать мне слово, а я его проверю!")
+		bot.register_next_step_handler(message, checkingAnswer, group_id)
+	elif message.chat.type == 'group' or message.chat.type == 'supergroup':
+		try:
+			bot.delete_message(message.chat.id, message.message_id)
+		except Exception:
+			pass
+		bot.send_message(message.chat.id, "Команда /answer используется только в личном чате.")
+	else:
+		bot.send_message(message.from_user.id, "Ты не шпион или игра еще не началась!")
+
 
 def settings(message):
 	if message.chat.type == 'private' and isCreatorForSettings(message.chat.id):
@@ -1295,6 +1306,13 @@ def inline(c):
 		if getInviteID(c.message.chat.id) == None:
 			c.message.from_user = c.from_user
 			game(c.message)
+	elif c.data == 'answerfromspy':
+		group_id = getGroupbByUsersIDInGame(c.from_user.id)
+		if c.message.chat.type == 'private' and gameIsExisted(group_id) == 0 and getSpyID(group_id) != None and getSpyID(group_id) == c.from_user.id:
+			bot.send_message(c.from_user.id, "Можешь написать мне слово, а я его проверю!")
+			bot.register_next_step_handler(c.message, checkingAnswer, group_id)
+		else:
+			bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
