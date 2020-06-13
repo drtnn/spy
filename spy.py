@@ -890,13 +890,6 @@ def find_all_by_key(iterable, key, value):
 	else:
 		return False
 
-def control_linux_keys():
-	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton("git pull", callback_data="gitpull"))
-	key.add(types.InlineKeyboardButton("restart", callback_data="restartbot"))
-	key.add(types.InlineKeyboardButton("Back", callback_data="admpanel"))
-	return key
-
 ###########################
 ###### Group Handler ######
 ###########################
@@ -958,7 +951,6 @@ def adminPanel(message, message_id=0):
 	key.add(types.InlineKeyboardButton("GameRoom", callback_data="updategameroom"))
 	key.add(types.InlineKeyboardButton("Mailing", callback_data="admrass"))
 	key.add(types.InlineKeyboardButton("Send message", callback_data="admsendmsg"))
-	key.add(types.InlineKeyboardButton("Linux controlling", callback_data="controlinux"))
 	if message_id == 0:
 		bot.send_message(message.chat.id, "<b>Admin panel</b>", parse_mode='html', reply_markup=key)
 	else:
@@ -1322,23 +1314,6 @@ def inline(c):
 			bot.register_next_step_handler(c.message, checkingAnswer, group_id)
 		else:
 			bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
-	elif c.data == "controlinux":
-		key = control_linux_keys()
-		bot.edit_message_text("linux controlling", c.message.chat.id, c.message.message_id, reply_markup=key)
-	elif c.data == "gitpull":
-		key = control_linux_keys()
-		subprocess.run("git pull", shell=True)
-		try:
-			bot.edit_message_text("Git pulled", c.message.chat.id, c.message.message_id, reply_markup=key)
-		except Exception as e:
-			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
-	elif c.data == "restartbot":
-		key = control_linux_keys()
-		subprocess.run("systemctl restart tgbot.service", shell=True)
-		try:
-			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
-		except Exception as e:
-			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
