@@ -894,7 +894,6 @@ def control_linux_keys():
 	key = types.InlineKeyboardMarkup()
 	key.add(types.InlineKeyboardButton("git pull", callback_data="gitpull"))
 	key.add(types.InlineKeyboardButton("restart", callback_data="restartbot"))
-	key.add(types.InlineKeyboardButton("stop", callback_data="stopbot"))
 	key.add(types.InlineKeyboardButton("Back", callback_data="admpanel"))
 	return key
 
@@ -1328,23 +1327,16 @@ def inline(c):
 		bot.edit_message_text("linux controlling", c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "gitpull":
 		key = control_linux_keys()
+		subprocess.run("git pull", shell=True)
 		try:
-			subprocess.run("git pull", shell=True)
 			bot.edit_message_text("Git pulled", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "restartbot":
 		key = control_linux_keys()
+		subprocess.run("systemctl restart tgbot.service", shell=True)
 		try:
 			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
-			subprocess.run("systemctl restart tgbot.service", shell=True)
-		except Exception as e:
-			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
-	elif c.data == "stopbot":
-		key = control_linux_keys()
-		try:
-			bot.edit_message_text("Stopped", c.message.chat.id, c.message.message_id, reply_markup=key)
-			subprocess.run("systemctl stop tgbot.service", shell=True)
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif "waitrole" in c.data:
