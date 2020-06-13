@@ -283,12 +283,12 @@ def givingWords(group_id):
 	gamers = cursor.fetchall()
 	word = getWord()
 	for i in gamers:
-		bot.send_message(i[0], "Итак, ваше место - {}.".format(word))
+		bot.send_message(i[0], "<b>Ты – местный</b>\nТвоя локация – {}\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!".format(word), parse_mode='html')
 	# cursor.execute("INSERT INTO groupsWord (grpID, word) VALUES ('%d', '%s')" % (group_id, word))
 	cursor.execute("UPDATE groups SET word = '%s' WHERE grpID = '%d'" % (word, group_id))
 	conn.commit()
 	cursor.execute("SELECT userID FROM gameroom WHERE grpID = '%d' and role = 1" % (group_id))
-	bot.send_message(cursor.fetchone()[0], "Ты - шпион! Постарайся угадать место и напиши мне /answer.")
+	bot.send_message(cursor.fetchone()[0], "Ты – шпион! Постарайся понять, о какой локации говорят местные и напиши ее мне /answer [только в личном диалоге].")
 	conn.close()
 
 def gameStarting(group_id):
@@ -539,7 +539,7 @@ def checkingAnswer(message, group_id):
 		bot.send_message(message.from_user.id, "Абсолютно верно, победа за Вами!")
 		SpyWins(group_id)
 	else:
-		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз - /answer.")
+		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз – /answer.")
 
 def SpyWins(group_id):
 	key = types.InlineKeyboardMarkup()
@@ -816,16 +816,16 @@ def startOfflineGame(user_id, message_id, id):
 	key = types.InlineKeyboardMarkup()
 	if id == row[1] and id == row[0]:
 		key.add(types.InlineKeyboardButton("OK", callback_data="rolesgiven"))
-		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные.\n\nЖми \"ОК\" для начала игры.", user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты – шпион</b>\nПостарайся понять, о какой локации говорят местные.\n\nЖми \"ОК\" для начала игры.", user_id, message_id, parse_mode='html', reply_markup=key)
 	elif id == row[0]:
 		key.add(types.InlineKeyboardButton("OK", callback_data="rolesgiven"))
-		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми \"ОК\" для начала игры.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты – местный</b>\nТвоя локация – <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми \"ОК\" для начала игры.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
 	elif id == row[1]:
 		key.add(types.InlineKeyboardButton("OK", callback_data=str(id + 1)+"waitrole"))
-		bot.edit_message_text("<b>Ты шпион</b>\nПостарайся понять, о какой локации говорят местные\n\nЖми \"ОК\" и передавай телефон следующему игроку.", user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты – шпион</b>\nПостарайся понять, о какой локации говорят местные\n\nЖми \"ОК\" и передавай телефон следующему игроку.", user_id, message_id, parse_mode='html', reply_markup=key)
 	else:
 		key.add(types.InlineKeyboardButton("OK", callback_data=str(id + 1)+"waitrole"))
-		bot.edit_message_text("<b>Ты местный</b>\nТвоя локация - <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми \"ОК\" и передавай телефон следующему игроку.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
+		bot.edit_message_text("<b>Ты – местный</b>\nТвоя локация – <i>{}</i>\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми \"ОК\" и передавай телефон следующему игроку.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
 
 def offlineGameEnd(user_id, message_id, date):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
@@ -1021,8 +1021,6 @@ def game(message):
 		key.add(types.InlineKeyboardButton("✔️", callback_data="permissions"))
 		bot.send_message(message.chat.id, "<b>Похоже я еще не получил права администратора.</b>\n* Удалять сообщения\n* Блокировать пользователей\n* Закреплять сообщения", parse_mode='html', reply_markup=key)
 
-
-
 # @bot.message_handler(commands=['end'])
 def end(message):
 	if (message.chat.type == 'supergroup'  or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and (message.from_user.id in getAdmins(message.chat.id) or isMyAdmin(message.from_user.id)):
@@ -1033,8 +1031,8 @@ def end(message):
 
 # @bot.message_handler(commands=['rules'])
 def rules(message):
-	# bot.send_message(message.chat.id, '<b>Правила</b>\nВ игре участвуют местные и шпионы.\nЦель игры:\n* Местным необходимо выявить шпиона.\n* Шпиону необходимо определить локацию.\nВ начале игры в личном диалоге местным будет сообщена локация, Шпиону - нет.\nЗадавайте друг другу вопросы, связанные с данной локацией, чтобы вычислить шпиона. Например: "Когда ты был последний раз в этом месте?"\nПраво задать следующий вопрос переходит отвечающему.\nВы шпион и догадываетесь о какой локации идет речь? Переходите ко мне в личный диалог, жмите /answer и отправляйте ваше слово.\nЕсли же вы местный и сочли чьи-то ответы слишком подозрительными, то вы можете дождаться голосования и выбрать подозреваемого, либо начать голосование прямо сейчас с помощью команды /startpoll.\nИ помните, одна игра - одно голосование!\n\nИзменить количество игроков и время игры может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html')
-	bot.send_message(message.chat.id, '<b>Правила</b>\nВ этой игре вашу компанию будет заносить в разные места. Вы можете оказаться работниками отеля или универмага, стать участниками, улететь в космос или очутиться на пиратском корабле. Границы широки!\nЦель шпиона - угадать место.\nЦель остальных - раскрыть шпиона.\nВам нужно будет расспрашивать друг друга о месте, в которое попали, пытаясь вычислить спрятавшегося среди соперников шпиона. Он единственный, кто понятия не имеет где вы все находитесь. Но при этом он будет слышать все ваши переговоры и иногда участвовать в них. Если ему удастся вычислить локацию прежде чем его раскроют - он победил!\n\nЗови друзей, играйте, обвиняйте друг друга, несите чушь и весело проводите время в игре \"Шпион\".', parse_mode='html')
+	# bot.send_message(message.chat.id, '<b>Правила</b>\nВ игре участвуют местные и шпионы.\nЦель игры:\n* Местным необходимо выявить шпиона.\n* Шпиону необходимо определить локацию.\nВ начале игры в личном диалоге местным будет сообщена локация, Шпиону – нет.\nЗадавайте друг другу вопросы, связанные с данной локацией, чтобы вычислить шпиона. Например: "Когда ты был последний раз в этом месте?"\nПраво задать следующий вопрос переходит отвечающему.\nВы шпион и догадываетесь о какой локации идет речь? Переходите ко мне в личный диалог, жмите /answer и отправляйте ваше слово.\nЕсли же вы местный и сочли чьи-то ответы слишком подозрительными, то вы можете дождаться голосования и выбрать подозреваемого, либо начать голосование прямо сейчас с помощью команды /startpoll.\nИ помните, одна игра – одно голосование!\n\nИзменить количество игроков и время игры может только создатель беседы в личном диалоге по команде /settings.', parse_mode='html')
+	bot.send_message(message.chat.id, '<b>Правила</b>\nВ этой игре вашу компанию будет заносить в разные места. Вы можете оказаться работниками отеля или универмага, стать участниками, улететь в космос или очутиться на пиратском корабле. Границы широки!\nЦель шпиона – угадать место.\nЦель остальных – раскрыть шпиона.\nВам нужно будет расспрашивать друг друга о месте, в которое попали, пытаясь вычислить спрятавшегося среди соперников шпиона. Он единственный, кто понятия не имеет где вы все находитесь. Но при этом он будет слышать все ваши переговоры и иногда участвовать в них. Если ему удастся вычислить локацию прежде чем его раскроют – он победил!\n\nЗови друзей, играйте, обвиняйте друг друга, несите чушь и весело проводите время в игре \"Шпион\".', parse_mode='html')
 
 # def admword(message):
 # 	if isMyAdmin(message.from_user.id) and getGroupbByUsersIDInGame(message.chat.id) != None:
@@ -1251,7 +1249,7 @@ def inline(c):
 				text += "no title\n"
 			word = cursor.fetchone()
 		conn.close()
-		bot.send_message(c.message.chat.id, "<b>Всего групп - {}</b>\n{}".format(groups[0], text), parse_mode="html")
+		bot.send_message(c.message.chat.id, "<b>Всего групп – {}</b>\n{}".format(groups[0], text), parse_mode="html")
 	elif c.data == 'addword':
 		bot.send_message(c.message.chat.id, "Присылай новое слово!")
 		bot.register_next_step_handler(c.message, addword)
@@ -1275,7 +1273,7 @@ def inline(c):
 		cursor.execute("SELECT COUNT(*) FROM users")
 		gamers = cursor.fetchone()
 		conn.close()
-		bot.send_message(c.message.chat.id, "<b>На данный момент в базе - " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
+		bot.send_message(c.message.chat.id, "<b>На данный момент в базе – " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
 	elif c.data == 'admrass':
 		bot.send_message(c.message.chat.id, "Рассылка\n\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, admrass)
@@ -1294,7 +1292,6 @@ def inline(c):
 		except Exception:
 			pass
 		if getInviteID(c.message.chat.id) == None:
-			print(1)
 			c.message.from_user = c.from_user
 			game(c.message)
 	elif "waitrole" in c.data:
