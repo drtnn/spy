@@ -1330,23 +1330,23 @@ def inline(c):
 		key = control_linux_keys()
 		try:
 			subprocess.call("git pull")
-			bot.edit_message_text("Git pulled", c.message.chat.id, c.message_id, reply_markup=key)
+			bot.edit_message_text("Git pulled", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
-			bot.edit_message_text(str(e), c.message.chat.id, c.message_id, reply_markup=key)
+			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "restartbot":
 		key = control_linux_keys()
 		try:
 			subprocess.call("systemctl restart tgbot.service")
-			bot.edit_message_text("Restarted", c.message.chat.id, c.message_id, reply_markup=key)
+			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
-			bot.edit_message_text(str(e), c.message.chat.id, c.message_id, reply_markup=key)
+			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "stopbot":
 		key = control_linux_keys()
 		try:
-			bot.edit_message_text("Restarted", c.message.chat.id, c.message_id, reply_markup=key)
+			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
 			subprocess.call("systemctl restart tgbot.service")
 		except Exception as e:
-			bot.edit_message_text(str(e), c.message.chat.id, c.message_id, reply_markup=key)
+			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
