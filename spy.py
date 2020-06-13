@@ -13,8 +13,8 @@ import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
 
-# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
 
