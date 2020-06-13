@@ -1325,26 +1325,26 @@ def inline(c):
 			bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
 	elif c.data == "controlinux":
 		key = control_linux_keys()
-		bot.send_message(c.message.chat.id, "linux controlling", reply_markup=key)
+		bot.edit_message_text("linux controlling", c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "gitpull":
 		key = control_linux_keys()
 		try:
-			subprocess.call("git pull")
+			subprocess.call("bash gitpull.sh")
 			bot.edit_message_text("Git pulled", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "restartbot":
 		key = control_linux_keys()
 		try:
-			subprocess.call("systemctl restart tgbot.service")
+			subprocess.call("bash restart.sh")
 			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif c.data == "stopbot":
 		key = control_linux_keys()
 		try:
-			bot.edit_message_text("Restarted", c.message.chat.id, c.message.message_id, reply_markup=key)
-			subprocess.call("systemctl restart tgbot.service")
+			bot.edit_message_text("Stopped", c.message.chat.id, c.message.message_id, reply_markup=key)
+			subprocess.call("bash stop.sh")
 		except Exception as e:
 			bot.edit_message_text(str(e), c.message.chat.id, c.message.message_id, reply_markup=key)
 	elif "waitrole" in c.data:
