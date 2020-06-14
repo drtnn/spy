@@ -255,7 +255,7 @@ def editInvite(group_id):
 	row = cursor.fetchall()
 	numOfGamers = len(row)
 	if numOfGamers > 3:#####################################################################################
-		key.add(types.InlineKeyboardButton("Начать игру", callback_data=str(group_id) + 'skipinvite'))
+		key.add(types.InlineKeyboardButton("Начать игру", callback_data='skipinvite'))
 	cursor.execute("SELECT * FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
 	i = False
@@ -291,7 +291,7 @@ def givingWords(group_id):
 	conn.commit()
 	cursor.execute("SELECT userID FROM gameroom WHERE grpID = '%d' and role = 1" % (group_id))
 	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton("Я знаю локацию", callback_data='answerfromspy'))
+	key.add(types.InlineKeyboardButton("Проверить локацию", callback_data='answerfromspy'))
 	bot.send_message(cursor.fetchone()[0], "<b>Ты – шпион!</b>\nПостарайся понять, о какой локации говорят местные и напиши ее мне после нажатия на кнопку.", parse_mode='html', reply_markup=key)
 	conn.close()
 
@@ -544,7 +544,7 @@ def checkingAnswer(message, group_id):
 		SpyWins(group_id)
 	else:
 		key = types.InlineKeyboardMarkup()
-		key.add(types.InlineKeyboardButton("Я знаю локацию", callback_data="answerfromspy"))
+		key.add(types.InlineKeyboardButton("Проверить локацию", callback_data="answerfromspy"))
 		bot.send_message(message.from_user.id, wordsPercent(message.text, word) + "\nМожешь попробовать еще раз.", reply_markup=key)
 
 def SpyWins(group_id):
