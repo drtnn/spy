@@ -142,7 +142,10 @@ def givingRoles(group_id):
 def endGame(group_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
-	bot.delete_message(group_id, getInviteID(group_id))
+	try:
+		bot.delete_message(group_id, getInviteID(group_id))
+	except Exception:
+		pass
 	cursor.execute("DELETE FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	# cursor.execute("DELETE FROM pieceID WHERE grpID = '%d'" % (group_id))
 	# cursor.execute("DELETE FROM spyID WHERE grpID = '%d'" % (group_id))
@@ -367,7 +370,7 @@ def whenToEndInvite(group_id, endTime):
 	# print(getNumberOfGamersByGroupIdFromSettings(group_id))
 	# print(bot.get_chat_members_count(group_id) - 1)
 	timing = 0
-	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupIdFromSettings(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1 and gameIsExisted(group_id) == 0:
+	while timing <= endTime and len(getGamersByGroupId(group_id)) <= getNumberOfGamersByGroupIdFromSettings(group_id) and len(getGamersByGroupId(group_id)) < bot.get_chat_members_count(group_id) - 1 and gameIsExisted(group_id) == 0 and getSpyID(group_id) == None:
 		time.sleep(3)
 		timing += 3
 		if endTime - timing == 28 or endTime - timing == 29 or endTime - timing == 30:
@@ -701,6 +704,8 @@ def showgameroom(message, message_id):
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	cursor = conn.cursor()
 	cursor.execute("SELECT * FROM gameRoom")
+	cursor2 = conn.cursor()
+	cursor2.execute("SELECT DISTINCT grpID FROM gameRoom")
 	word = cursor.fetchone()
 	text = ""
 	key = types.InlineKeyboardMarkup()
@@ -716,9 +721,12 @@ def showgameroom(message, message_id):
 			pass
 		finally:
 			return
+	groups = cursor2.fetchone()
 	while word != None:
 		text += str(word[0]) + '_' + str(word[1]) + '_' + word[2] + "\n"
-		key.add(types.InlineKeyboardButton(word[0], callback_data=str(word[0]) + "cleancache"))
+		if groups != None:
+			key.add(types.InlineKeyboardButton(groups[0], callback_data=str(groups[0]) + "cleancache"))
+			groups = cursor2.fetchone()
 		word = cursor.fetchone()
 	conn.close()
 	if message_id == 0:
