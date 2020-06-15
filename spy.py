@@ -1351,7 +1351,7 @@ def inline(c):
 		conn.close()
 		bot.send_message(c.message.chat.id, "<b>На данный момент в базе – " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
 	elif c.data == 'admrass':
-		bot.send_message(c.message.chat.id, "Рассылка\n\n/cancel для отмены")
+		bot.send_message(c.message.chat.id, "Присылай сообщение для пользователей\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, admrass)
 	elif c.data == 'admpanel':
 		adminPanel(c.message, c.message.message_id)
