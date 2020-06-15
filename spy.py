@@ -14,8 +14,8 @@ import time
 import threading
 import validators
 
-# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
 
