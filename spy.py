@@ -144,7 +144,6 @@ def endGame(group_id):
 	cursor = conn.cursor()
 	try:
 		bot.delete_message(group_id, getInviteID(group_id))
-		bot.unpin_chat_message(group_id)
 	except Exception:
 		pass
 	cursor.execute("DELETE FROM gameRoom WHERE grpID = '%d'" % (group_id))
@@ -318,10 +317,7 @@ def gameStarting(group_id):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Локация здесь", url="t.me/findspy_bot"))
 		random_user_id = whoIsTheFirst(group_id)
-		try:
-			bot.pin_chat_message(group_id, sendGamers(group_id))
-		except:
-			pass
+		sendGamers(group_id)
 		bot.send_message(group_id, "Итак, первым поиски шпиона начинает <a href='tg://user?id={}'>{}</a>.\n\n<i>Выберите игрока и задайте ему вопрос, следующий вопрос задает предыдущий ответивший.</i>".format(random_user_id, getNameFromGameRoom(random_user_id)), reply_markup=key, parse_mode='html')
 		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, getTimeForGame(group_id)))###################################################################################################################
 		t.start()
@@ -401,6 +397,9 @@ def individualPoll(group_id):
 	cursor.execute("UPDATE messages SET poll = 1 WHERE grpID = '%d'" % (group_id))
 	conn.commit()
 	conn.close()
+	group_key = types.InlineKeyboardMarkup()
+	group_key.add(types.InlineKeyboardButton("Проголосовать", url="t.me/findspy_bot"))
+	bot.send_message(group_id, "Вычислил предполагаемого шпиона? Проголосуй против него в личном чате со мной.", reply_markup=group_key)
 
 def getNumberFromCall(data, letter):
 	num = ""
