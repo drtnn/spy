@@ -318,7 +318,10 @@ def gameStarting(group_id):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Локация здесь", url="t.me/findspy_bot"))
 		random_user_id = whoIsTheFirst(group_id)
-		bot.pin_chat_message(group_id, sendGamers(group_id))
+		try:
+			bot.pin_chat_message(group_id, sendGamers(group_id))
+		except:
+			pass
 		bot.send_message(group_id, "Итак, первым поиски шпиона начинает <a href='tg://user?id={}'>{}</a>.\n\n<i>Выберите игрока и задайте ему вопрос, следующий вопрос задает предыдущий ответивший.</i>".format(random_user_id, getNameFromGameRoom(random_user_id)), reply_markup=key, parse_mode='html')
 		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, getTimeForGame(group_id)))###################################################################################################################
 		t.start()
@@ -900,6 +903,8 @@ def getMessageCallback(message, text):
 		except:
 			bot.send_message(message.from_user.id, "Ошибка подбора кнопок")
 			return
+	else:
+		return
 	bot.send_message(message.from_user.id, text, reply_markup=key)
 	bot.send_message(message.from_user.id, "Отправляем всем/отмена/user_id")
 	bot.register_next_step_handler(message, mailing, key, text)
