@@ -12,10 +12,10 @@ from string import ascii_letters
 import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
-import subprocess
+import validators
 
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+# token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
 bot = telebot.TeleBot(token)
 
@@ -144,6 +144,7 @@ def endGame(group_id):
 	cursor = conn.cursor()
 	try:
 		bot.delete_message(group_id, getInviteID(group_id))
+		bot.unpin_chat_message(group_id)
 	except Exception:
 		pass
 	cursor.execute("DELETE FROM gameRoom WHERE grpID = '%d'" % (group_id))
@@ -305,6 +306,7 @@ def gameStarting(group_id):
 	if gameIsExisted(group_id) == 0 and first_invite_id != None:
 		# first_invite_id = getInviteID(group_id)
 		try:
+			bot.unpin_chat_message(group_id)
 			bot.delete_message(group_id, first_invite_id)
 		except Exception:
 			pass
@@ -316,6 +318,7 @@ def gameStarting(group_id):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Локация здесь", url="t.me/findspy_bot"))
 		random_user_id = whoIsTheFirst(group_id)
+		bot.pin_chat_message(group_id, sendGamers(group_id))
 		bot.send_message(group_id, "Итак, первым поиски шпиона начинает <a href='tg://user?id={}'>{}</a>.\n\n<i>Выберите игрока и задайте ему вопрос, следующий вопрос задает предыдущий ответивший.</i>".format(random_user_id, getNameFromGameRoom(random_user_id)), reply_markup=key, parse_mode='html')
 		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, getTimeForGame(group_id)))###################################################################################################################
 		t.start()
@@ -737,23 +740,6 @@ def showgameroom(message, message_id):
 		except Exception:
 			pass
 
-def admsendmsg(message):
-	if message.text == "/cancel":
-		return
-	bot.send_message(message.from_user.id, "Теперь пришлите сообщение для юзера\n\n/cancel для отмены")
-	bot.register_next_step_handler(message, admsendingmsg, int(message.text))
-
-def admsendingmsg(message, user_id):
-	if message.text == "/cancel":
-		return
-	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
-	try:
-		bot.send_message(user_id, message.text, reply_markup=key, parse_mode='html')
-		bot.send_message(message.from_user.id, "Сообщение отправлено")
-	except Exception:
-		bot.send_message(message.from_user.id, "Ошибка")
-
 def numGamersForOFflineGame(message, chat_id, old_message_id):
 	if message.text == '/cancel':
 		try:
@@ -898,6 +884,73 @@ def find_all_by_key(iterable, key, value):
 	else:
 		return False
 
+def getMessageCallback(message, text):
+	if message.text == '/cancel':
+		return
+	if ' ➖ ' in message.text:
+		try:
+			key = types.InlineKeyboardMarkup()
+			callback_data = message.text.split('\n')
+			for i in callback_data:
+				splitter = i.split(' ➖ ')
+				if validators.url(splitter[1]):
+					key.add(types.InlineKeyboardButton(splitter[0], url=splitter[1]))
+				else:
+					key.add(types.InlineKeyboardButton(splitter[0], callback_data=splitter[1]))
+		except:
+			bot.send_message(message.from_user.id, "Ошибка подбора кнопок")
+			return
+	bot.send_message(message.from_user.id, text, reply_markup=key)
+	bot.send_message(message.from_user.id, "Отправляем всем/отмена/user_id")
+	bot.register_next_step_handler(message, mailing, key, text)
+
+def mailing(message, key, text):
+	if message.text.lower() == 'всем':
+		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		cursor = conn.cursor()
+		cursor.execute('SELECT userID FROM users')
+		row = cursor.fetchall()
+		users = 0
+		conn.close()
+		for user in row:
+			try:
+				bot.send_message(user[0], text, parse_mode="html", reply_markup=key)
+				users += 1
+			except:
+				pass
+		bot.send_message(message.from_user.id, "Отправлено {}".format(users), parse_mode="html", reply_markup=key)
+	elif message.text.lower() == 'Отмена':
+		return
+	elif message.text.isdigit():
+		bot.send_message(str(message.text), text, parse_mode="html", reply_markup=key)
+	else:
+		bot.send_message(message.from_user.id, "Отмена", parse_mode="html", reply_markup=key)
+
+
+def checkNewWord(message):
+	if message.text == '/cancel':
+		bot.send_message(message.from_user.id, "Отмена.")
+		return
+	bot.send_message(message.from_user.id, "Cпасибо, что помогаешь в развитии!")
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Добавить", callback_data="{}_addingword".format(message.text)), types.InlineKeyboardButton("Отмена", callback_data="delete_message"))
+	bot.send_message(144589481, "Новое слово от пользователя {}({}) – {}".format(message.from_user.first_name, message.from_user.id, message.text), reply_markup=key)
+
+def sendGamers(group_id):
+	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	cursor = conn.cursor()
+	text = "<b>Участники игры:</b>\n    "
+	cursor.execute("SELECT * FROM gameRoom WHERE grpID = '%d'" % (group_id))
+	row = cursor.fetchone()
+	text += "<a href='tg://user?id={}'>{}</a>".format(row[1], row[2])
+	row = cursor.fetchone()
+	while row != None:
+		text += ", <a href='tg://user?id={}'>{}</a>".format(row[1], row[2])
+		row = cursor.fetchone()
+	conn.close()
+	message = bot.send_message(group_id, text, parse_mode='html')
+	return message.message_id
+
 ###########################
 ###### Group Handler ######
 ###########################
@@ -958,7 +1011,6 @@ def adminPanel(message, message_id=0):
 	key.add(types.InlineKeyboardButton("Number of users", callback_data="countgamers"))
 	key.add(types.InlineKeyboardButton("GameRoom", callback_data="updategameroom"))
 	key.add(types.InlineKeyboardButton("Mailing", callback_data="admrass"))
-	key.add(types.InlineKeyboardButton("Send message", callback_data="admsendmsg"))
 	if message_id == 0:
 		bot.send_message(message.chat.id, "<b>Admin panel</b>", parse_mode='html', reply_markup=key)
 	else:
@@ -1017,6 +1069,10 @@ def game(message):
 			return
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
 		invite_message = bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
+		try:
+			bot.pin_chat_message(invite_message.chat.id, invite_message.message_id)
+		except:
+			pass
 		inviteID(invite_message.chat.id, invite_message.message_id)
 		if newGame(message.chat.id, message.from_user.id, message.from_user.first_name) == 2:
 			btn = types.InlineKeyboardMarkup()
@@ -1139,14 +1195,8 @@ def settings(message):
 def admrass(message):
 	if message.text == "/cancel":
 		return
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-	cursor = conn.cursor()
-	cursor.execute('SELECT * FROM users')
-	row = cursor.fetchone()
-	while row is not None:
-		bot.send_message(row[0], message.text, parse_mode="html")
-		row = cursor.fetchone()
-	conn.close()
+	bot.send_message(message.from_user.id, "Присылай кнопки в формате:\n\nкнопка1 ➖ callback_data1\nкнопка1 ➖ callback_data1\n\n/cancel для отмены")
+	bot.register_next_step_handler(message, getMessageCallback, message.text)
 
 # @bot.message_handler(commands=['offlinegame'])
 def offlineGame(message):
@@ -1298,9 +1348,6 @@ def inline(c):
 	elif c.data == 'admrass':
 		bot.send_message(c.message.chat.id, "Рассылка\n\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, admrass)
-	elif c.data == 'admsendmsg':
-		bot.send_message(c.message.chat.id, "Пришлите user_id\n\n/cancel для отмены")
-		bot.register_next_step_handler(c.message, admsendmsg)
 	elif c.data == 'admpanel':
 		adminPanel(c.message, c.message.message_id)
 	elif c.data == "startgame":
@@ -1322,6 +1369,21 @@ def inline(c):
 			bot.register_next_step_handler(c.message, checkingAnswer, group_id)
 		else:
 			bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
+	elif c.data == "newwordfromuser":
+		bot.send_message(c.from_user.id, "Присылай новую локацию, а я обсужу ее добавление с администратором.\n\n/cancel для отмены")
+		bot.register_next_step_handler(c.message, checkNewWord)
+	elif "_addingword" in c.data:
+		word = c.data.split('_')[0]
+		if isMyAdmin(c.from_user.id):
+			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+			try:
+				cursor = conn.cursor()
+				cursor.execute("INSERT INTO words (word) VALUES ('%s')" % (word))
+				conn.commit()
+				bot.send_message(c.from_user.id, "Добавлено!")
+			except Exception as e:
+				bot.send_message(144589481, str(e))
+			conn.close()
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
