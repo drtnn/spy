@@ -1,14 +1,15 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# vim:fileencoding=utf-8
-from __future__ import unicode_literals
 import telebot
 from telebot import types
 from telebot import apihelper
 import datetime
-import json
 import sqlite3
-from string import ascii_letters
+import random				#random.randint(<Начало>, <Конец>)
+import time
+import threading
+import validators
+import yadisk
 
+y = yadisk.YaDisk(token="AgAAAAAE0s-AAAapnFNsYjAaokDEhJVgXUo0WGI")
 token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 bot = telebot.TeleBot(token)
