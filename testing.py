@@ -13,21 +13,23 @@ import random
 
 #random.randint(<Начало>, <Конец>)
 
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 bot = telebot.TeleBot(token)
 
 @bot.message_handler(commands=['start'])
 def hello(message):
-	# print(message)
-	print(bot.get_chat_member(message.chat.id, message.from_user.id).status)#############################
-	print(bot.get_chat_administrators(message.chat.id))
-	adms = bot.get_chat_administrators(message.chat.id)
-	print(adms[1].status)
-	print(adms[1].user.id)##################################################
+	print(message.from_user.first_name)
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("types", callback_data="typ"))
+	message1 = bot.send_message(message.chat.id, "click", reply_markup=key)
+	bot.register_for_reply(message1, register)
 
+def register(message):
+	print(message)
 
 @bot.message_handler(content_types=["text"])
 def gg(message):
+	print(message.from_user.first_name)
 	key = types.InlineKeyboardMarkup()
 	btn = types.InlineKeyboardButton("anything", callback_data="test")
 	key.add(btn)

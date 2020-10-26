@@ -2,9 +2,14 @@
 # -*- coding: utf-8 -*-
 # vim:fileencoding=utf-8
 from __future__ import unicode_literals
-import telebot
-from telebot import types
-from telebot import apihelper
+import aiogram
+from aiogram import Bot, types
+from aiogram.dispatcher import Dispatcher
+from aiogram.utils import executor
+# .types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+# import telebot
+# from telebot import types
+# from telebot import apihelper
 import datetime
 import json
 import sqlite3
@@ -12,21 +17,20 @@ from string import ascii_letters
 import random				#random.randint(<Начало>, <Конец>)
 import time
 import threading
-import validators
-import yadisk
+import subprocess
 
-y = yadisk.YaDisk(token="AgAAAAAE0s-AAAapnFNsYjAaokDEhJVgXUo0WGI")
-token = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
-# token = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
+TOKEN = "1084976464:AAGj6yatNDYgQIi1eoqlNrzUPxRqRreQ318"
+# TOKEN = "941639396:AAFPJMdmcMhXWtniZbJeE0DeuBvykLu6Ve8" #test_token
 
-bot = telebot.TeleBot(token)
+bot = Bot(token=TOKEN)
+dp = Dispatcher(bot)
 
 def dbConnect():
 	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
 	return conn
 
 def getWord():
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT word FROM words ORDER BY RANDOM() LIMIT 1")
 	word = cursor.fetchone()[0]
@@ -34,7 +38,7 @@ def getWord():
 	return word
 
 def newGame(group_id, user_id, name):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM gameRoom WHERE userID = '%d'" % (user_id))
 	if cursor.fetchone() != None:
@@ -56,7 +60,7 @@ def newGame(group_id, user_id, name):
 	return 0
 
 def addUserToGame(group_id, user_id, name):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT grpID FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	if cursor.fetchone() == None:
@@ -88,7 +92,7 @@ def addUserToGame(group_id, user_id, name):
 def gameIsExisted(group_id):
 	if group_id == None:
 		return
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT * FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	if cursor.fetchone() != None:
@@ -98,7 +102,7 @@ def gameIsExisted(group_id):
 	return 1
 
 def addUser(user_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM users WHERE userID = '%d'" % (user_id))
 	row = cursor.fetchone()
@@ -111,7 +115,7 @@ def addUser(user_id):
 	return 0
 
 def addGroup(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT grpID FROM groups WHERE grpID = '%d'" % (group_id))
 	if cursor.fetchone() != None:
@@ -123,7 +127,7 @@ def addGroup(group_id):
 	return 0
 
 def givingRoles(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchall()
@@ -142,7 +146,7 @@ def givingRoles(group_id):
 	return 0
 
 def endGame(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	try:
 		bot.delete_message(group_id, getInviteID(group_id))
@@ -162,7 +166,7 @@ def admSettings(group_id):
 	adms = bot.get_chat_administrators(group_id)
 	for i in adms:
 		if i.status == 'creator':
-			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+			conn = dbConnect()
 			cursor = conn.cursor()
 			cursor.execute("INSERT INTO settings (grpID, userID, time, gamers, inviteTime) VALUES ('%d', '%d', '%d', '%d', '%d')" % (group_id, i.user.id, 5, 12, 45))
 			conn.commit()
@@ -195,7 +199,7 @@ def checkPermissions(group_id):
 		return 1
 
 def inviteID(group_id, invite_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT * FROM messages WHERE grpID = '%d'" % (group_id))
 	if cursor.fetchone() != None:
@@ -206,7 +210,7 @@ def inviteID(group_id, invite_id):
 	return 0
 
 def getPollStatus(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT poll FROM messages WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -215,7 +219,7 @@ def getPollStatus(group_id):
 		return row[0]
 
 def getInviteID(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT inviteID FROM messages WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -223,7 +227,7 @@ def getInviteID(group_id):
 		return row[0]
 
 def getGamersByGroupId(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchall()
@@ -231,7 +235,7 @@ def getGamersByGroupId(group_id):
 	return row
 
 def getInviteTime(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT inviteTime FROM settings WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -240,7 +244,7 @@ def getInviteTime(group_id):
 		return row[0]
 
 def getNumberOfGamersByGroupIdFromSettings(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT gamers FROM settings WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -250,7 +254,7 @@ def getNumberOfGamersByGroupIdFromSettings(group_id):
 		return row[0]
 
 def editInvite(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	invite_id = getInviteID(group_id)
 	key = types.InlineKeyboardMarkup()
@@ -284,7 +288,7 @@ def waitingUsers(group_id, timing):
 	# bot.delete_message(group_id, getInviteID(group_id))
 
 def givingWords(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM gameroom WHERE grpID = '%d' and role = 0" % (group_id))
 	gamers = cursor.fetchall()
@@ -307,7 +311,6 @@ def gameStarting(group_id):
 	if gameIsExisted(group_id) == 0 and first_invite_id != None:
 		# first_invite_id = getInviteID(group_id)
 		try:
-			bot.unpin_chat_message(group_id)
 			bot.delete_message(group_id, first_invite_id)
 		except Exception:
 			pass
@@ -319,7 +322,6 @@ def gameStarting(group_id):
 		key = types.InlineKeyboardMarkup()
 		key.add(types.InlineKeyboardButton("Локация здесь", url="t.me/findspy_bot"))
 		random_user_id = whoIsTheFirst(group_id)
-		sendGamers(group_id)
 		bot.send_message(group_id, "Итак, первым поиски шпиона начинает <a href='tg://user?id={}'>{}</a>.\n\n<i>Выберите игрока и задайте ему вопрос, следующий вопрос задает предыдущий ответивший.</i>".format(random_user_id, getNameFromGameRoom(random_user_id)), reply_markup=key, parse_mode='html')
 		t = threading.Thread(target=whenToStartPoll, name="Thread2Poll{}".format(str(group_id)), args=(group_id, getTimeForGame(group_id)))###################################################################################################################
 		t.start()
@@ -333,7 +335,7 @@ def gameStarting(group_id):
 		return 1
 
 def whoIsTheFirst(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM gameRoom WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchall()
@@ -394,14 +396,11 @@ def individualPoll(group_id):
 				continue
 			key.add(types.InlineKeyboardButton(text=getNameFromGameRoom(j[0]), callback_data=str(j[0]) + "poll"))
 		bot.send_message(i[0], "Выбери предполагаемого шпиона!\nПомни, у тебя только одна попытка.", reply_markup=key)
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("UPDATE messages SET poll = 1 WHERE grpID = '%d'" % (group_id))
 	conn.commit()
 	conn.close()
-	group_key = types.InlineKeyboardMarkup()
-	group_key.add(types.InlineKeyboardButton("Проголосовать", url="t.me/findspy_bot"))
-	bot.send_message(group_id, "Вычислил предполагаемого шпиона? Проголосуй против него в личном чате со мной.", reply_markup=group_key)
 
 def getNumberFromCall(data, letter):
 	num = ""
@@ -426,7 +425,7 @@ def getNumberFromLetterToCall(data, fromLetter, toLetter):
 	return int(num)
 
 def pollResult(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT onUserID FROM poll WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchall()
@@ -434,7 +433,7 @@ def pollResult(group_id):
 	return row
 
 def maxdb(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("Select onUserID, count(*) FROM poll WHERE grpID = ('%d') GROUP BY onUserID" % (group_id))
 	row = cursor.fetchall()
@@ -451,7 +450,7 @@ def maxdb(group_id):
 
 def pollHandler(group_id, user_id, poll_data):
 	userPoll = getNumberFromCall(poll_data, 'p')
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT whoUserID FROM poll WHERE whoUserID = '%d'" % (user_id))
 	row = cursor.fetchone()
@@ -466,7 +465,7 @@ def pollHandler(group_id, user_id, poll_data):
 		startGameResult(group_id)
 
 def getSpyID(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM gameroom WHERE grpID = '%d' and role = 1" % (group_id))
 	row = cursor.fetchone()
@@ -500,7 +499,7 @@ def startGameResult(group_id):
 	endGame(group_id)
 
 def getGroupbByUsersIDInGame(user_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT grpID FROM gameRoom WHERE userID = '%d'" % (user_id))
 	row = cursor.fetchone()
@@ -509,7 +508,7 @@ def getGroupbByUsersIDInGame(user_id):
 		return row[0]
 
 def getNameFromGameRoom(user_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT name FROM gameRoom WHERE userID = '%d'" % (user_id))
 	row = cursor.fetchone()
@@ -539,7 +538,7 @@ def wordsPercent(string1, string2):
 		return text
 
 def getGroupsWord(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT word FROM groups WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -564,7 +563,7 @@ def SpyWins(group_id):
 	endGame(group_id)
 
 def getMyAdmins():
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM admin")
 	row = cursor.fetchall()
@@ -580,7 +579,7 @@ def isMyAdmin(user_id):
 	return False
 
 def getAllCreators():
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT userID FROM settings")
 	row = cursor.fetchall()
@@ -596,7 +595,7 @@ def isCreatorForSettings(user_id):
 	return False
 
 def getCreatorsGroups(user_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT grpID FROM settings WHERE userID = '%d'" % (user_id))
 	row = cursor.fetchall()
@@ -607,7 +606,7 @@ def getCreatorsGroups(user_id):
 def editToGroupSettings(data, user_id, message_id):
 	group_id = getNumberFromCall(data, 's')
 	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton("Изменить максимальное количество игроков", callback_data=str(group_id) + "maxgamers"))
+	key.add(types.InlineKeyboardButton("Изменить максимальное число игроков", callback_data=str(group_id) + "maxgamers"))
 	key.add(types.InlineKeyboardButton("Изменить длительность игры", callback_data=str(group_id) + "time"))
 	key.add(types.InlineKeyboardButton("Изменить длительность регистрации", callback_data=str(group_id) + "inviting"))
 	key.add(types.InlineKeyboardButton("⬅️Обратно к выбору группы", callback_data="groupsettings"))
@@ -623,6 +622,8 @@ def changeMaxGamers(message, data, user_id, message_id):
 	except Exception:
 		pass	
 	bot.register_next_step_handler(message, maxGamers, old_message_id=message_id, group_id=group_id)
+	# dp.register_message_handler()
+	
 
 def maxGamers(message, old_message_id, group_id):
 	if message.text == '/cancel':
@@ -634,7 +635,7 @@ def maxGamers(message, old_message_id, group_id):
 	except Exception:
 		pass
 	if message.text.isdigit() and int(message.text) < bot.get_chat_members_count(group_id):
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("UPDATE settings SET gamers = '%d' WHERE grpID = '%d'" % (int(message.text), group_id))
 		conn.commit()
@@ -673,7 +674,7 @@ def changeToSettings(text, user_id, message_id):
 		pass
 
 def getTimeForGame(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT time FROM settings WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -682,7 +683,7 @@ def getTimeForGame(group_id):
 		return row[0] * 40
 
 def getTimeAfterPoll(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT time FROM settings WHERE grpID = '%d'" % (group_id))
 	row = cursor.fetchone()
@@ -708,7 +709,7 @@ def answerToUser(message, data):
 	bot.send_message(user_id, "<i>Обратная связь</i>\n\n{}".format(message.text), reply_markup=key, parse_mode='html')
 
 def showgameroom(message, message_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT * FROM gameRoom")
 	cursor2 = conn.cursor()
@@ -744,6 +745,23 @@ def showgameroom(message, message_id):
 		except Exception:
 			pass
 
+def admsendmsg(message):
+	if message.text == "/cancel":
+		return
+	bot.send_message(message.from_user.id, "Теперь пришлите сообщение для юзера\n\n/cancel для отмены")
+	bot.register_next_step_handler(message, admsendingmsg, int(message.text))
+
+def admsendingmsg(message, user_id):
+	if message.text == "/cancel":
+		return
+	key = types.InlineKeyboardMarkup()
+	key.add(types.InlineKeyboardButton("Ответить", callback_data="feedback"))
+	try:
+		bot.send_message(user_id, message.text, reply_markup=key, parse_mode='html')
+		bot.send_message(message.from_user.id, "Сообщение отправлено")
+	except Exception:
+		bot.send_message(message.from_user.id, "Ошибка")
+
 def numGamersForOFflineGame(message, chat_id, old_message_id):
 	if message.text == '/cancel':
 		try:
@@ -761,7 +779,7 @@ def numGamersForOFflineGame(message, chat_id, old_message_id):
 		except Exception:
 			pass
 		numOfGamers = int(message.text)
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("INSERT INTO offlineGame (userID, gamers, word) VALUES ('%d', '%d', '%s')" % (message.chat.id, numOfGamers, getWord()))
 		conn.commit()
@@ -793,7 +811,7 @@ def numGamersForOFflineGame(message, chat_id, old_message_id):
 		bot.register_next_step_handler(message, numGamersForOFflineGame, chat_id, old_message_id)
 
 def setOfflineSpy(user_id, message_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT spy FROM offlineGame WHERE userID = '%d'" % (user_id))
 	row = cursor.fetchone()
@@ -814,7 +832,7 @@ def setOfflineSpy(user_id, message_id):
 		pass
 	
 def startOfflineGame(user_id, message_id, id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT gamers,spy,word FROM offlineGame WHERE userID = '%d'" % (user_id))
 	row = cursor.fetchone()
@@ -833,7 +851,7 @@ def startOfflineGame(user_id, message_id, id):
 		bot.edit_message_text("<b>Ты – местный.</b>\nТвоя локация – <i>{}</i>.\nВсе игроки, кроме Шпиона, знают эту локацию. Задавай вопросы другим игрокам, чтобы вычислить Шпиона!\n\nЖми \"ОК\" и передавай телефон следующему игроку.".format(row[2]), user_id, message_id, parse_mode='html', reply_markup=key)
 
 def offlineGameEnd(user_id, message_id, date):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	if date == None:
 		try:
@@ -863,7 +881,7 @@ def offlineGameEnd(user_id, message_id, date):
 	conn.close()
 
 def getOfflineGameStartTime(user_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+	conn = dbConnect()
 	cursor = conn.cursor()
 	cursor.execute("SELECT startTime FROM offlineGame WHERE userID = '%d'" % (user_id))
 	startTime = cursor.fetchone()
@@ -888,75 +906,6 @@ def find_all_by_key(iterable, key, value):
 	else:
 		return False
 
-def getMessageCallback(message, text):
-	if message.text == '/cancel':
-		return
-	if ' ➖ ' in message.text:
-		try:
-			key = types.InlineKeyboardMarkup()
-			callback_data = message.text.split('\n')
-			for i in callback_data:
-				splitter = i.split(' ➖ ')
-				if validators.url(splitter[1]):
-					key.add(types.InlineKeyboardButton(splitter[0], url=splitter[1]))
-				else:
-					key.add(types.InlineKeyboardButton(splitter[0], callback_data=splitter[1]))
-		except:
-			bot.send_message(message.from_user.id, "Ошибка подбора кнопок")
-			return
-	else:
-		return
-	bot.send_message(message.from_user.id, text, reply_markup=key)
-	bot.send_message(message.from_user.id, "Отправляем всем/отмена/user_id")
-	bot.register_next_step_handler(message, mailing, key, text)
-
-def mailing(message, key, text):
-	if message.text.lower() == 'всем':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-		cursor = conn.cursor()
-		cursor.execute('SELECT userID FROM users')
-		row = cursor.fetchall()
-		users = 0
-		conn.close()
-		for user in row:
-			try:
-				bot.send_message(user[0], text, parse_mode="html", reply_markup=key)
-				users += 1
-			except:
-				pass
-		bot.send_message(message.from_user.id, "Отправлено {}".format(users), parse_mode="html", reply_markup=key)
-	elif message.text.lower() == 'Отмена':
-		return
-	elif message.text.isdigit():
-		bot.send_message(str(message.text), text, parse_mode="html", reply_markup=key)
-	else:
-		bot.send_message(message.from_user.id, "Отмена", parse_mode="html", reply_markup=key)
-
-
-def checkNewWord(message):
-	if message.text == '/cancel':
-		bot.send_message(message.from_user.id, "Отмена.")
-		return
-	bot.send_message(message.from_user.id, "Cпасибо, что помогаешь в развитии!")
-	key = types.InlineKeyboardMarkup()
-	key.add(types.InlineKeyboardButton("Добавить", callback_data="{}_addingword".format(message.text)), types.InlineKeyboardButton("Отмена", callback_data="delete_message"))
-	bot.send_message(144589481, "Новое слово от пользователя {}({}) – {}".format(message.from_user.first_name, message.from_user.id, message.text), reply_markup=key)
-
-def sendGamers(group_id):
-	conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-	cursor = conn.cursor()
-	text = "<b>Участники игры:</b>\n    "
-	cursor.execute("SELECT * FROM gameRoom WHERE grpID = '%d'" % (group_id))
-	row = cursor.fetchone()
-	text += "<a href='tg://user?id={}'>{}</a>".format(row[1], row[2])
-	row = cursor.fetchone()
-	while row != None:
-		text += ", <a href='tg://user?id={}'>{}</a>".format(row[1], row[2])
-		row = cursor.fetchone()
-	conn.close()
-	message = bot.send_message(group_id, text, parse_mode='html')
-	return message.message_id
-
 ###########################
 ###### Group Handler ######
 ###########################
@@ -972,8 +921,6 @@ def newChatMember(message):
 
 @bot.message_handler(content_types=['text', 'voice', 'video', 'photo', 'document'])
 def AllHandler(message):
-	if message.chat.type == 'private':
-		addUser(message.from_user.id)
 	if (message.chat.type == 'supergroup' or message.chat.type == 'group') and gameIsExisted(message.chat.id) == 0 and getSpyID(message.chat.id) != None and (message.from_user.id,) not in getGamersByGroupId(message.chat.id):
 		try:
 			bot.delete_message(message.chat.id, message.message_id)
@@ -1019,6 +966,7 @@ def adminPanel(message, message_id=0):
 	key.add(types.InlineKeyboardButton("Number of users", callback_data="countgamers"))
 	key.add(types.InlineKeyboardButton("GameRoom", callback_data="updategameroom"))
 	key.add(types.InlineKeyboardButton("Mailing", callback_data="admrass"))
+	key.add(types.InlineKeyboardButton("Send message", callback_data="admsendmsg"))
 	if message_id == 0:
 		bot.send_message(message.chat.id, "<b>Admin panel</b>", parse_mode='html', reply_markup=key)
 	else:
@@ -1077,10 +1025,6 @@ def game(message):
 			return
 		key.add(types.InlineKeyboardButton("Присоединиться", callback_data='connect'))
 		invite_message = bot.send_message(message.chat.id, "Жми на кнопку, чтобы присоединиться к игре!\n\n    Игроки: <a href='tg://user?id={}'>{}</a>".format(message.from_user.id, message.from_user.first_name), parse_mode="html", reply_markup=key)
-		try:
-			bot.pin_chat_message(invite_message.chat.id, invite_message.message_id)
-		except:
-			pass
 		inviteID(invite_message.chat.id, invite_message.message_id)
 		if newGame(message.chat.id, message.from_user.id, message.from_user.first_name) == 2:
 			btn = types.InlineKeyboardMarkup()
@@ -1119,7 +1063,7 @@ def rules(message):
 
 def addword(message):
 	if isMyAdmin(message.from_user.id):
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("INSERT INTO words (word) VALUES ('%s')" % (message.text))
 		conn.commit()
@@ -1133,7 +1077,7 @@ def leave(message):
 			bot.send_message(message.chat.id, "<b>Игра завершена.</b>\n* Шпион <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 			endGame(message.chat.id)
 		elif spyID == None and len(getGamersByGroupId(message.chat.id)) > 1:
-			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+			conn = dbConnect()
 			cursor = conn.cursor()
 			cursor.execute("DELETE FROM gameroom WHERE userID = '%d'" % (message.from_user.id))
 			conn.commit()
@@ -1147,7 +1091,7 @@ def leave(message):
 			bot.send_message(message.chat.id, "<b>Недостаточно игроков для продолжения игры.</b>\n* <a href='tg://user?id={}'>{}</a> покидает игру.".format(message.from_user.id, message.from_user.first_name), parse_mode='html')
 			endGame(message.chat.id)
 		elif spyID != message.from_user.id and len(getGamersByGroupId(message.chat.id)) > 4:
-			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+			conn = dbConnect()
 			cursor = conn.cursor()
 			cursor.execute("DELETE FROM gameRoom WHERE userID = '%d'" % (message.from_user.id))
 			# cursor.execute("DELETE FROM pieceID WHERE userID = '%d'" % (message.from_user.id))
@@ -1160,7 +1104,7 @@ def leave(message):
 
 def delword(message):
 	if isMyAdmin(message.from_user.id):
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("SELECT word FROM words WHERE word = '%s'" % (message.text))
 		row = cursor.fetchone()
@@ -1203,13 +1147,19 @@ def settings(message):
 def admrass(message):
 	if message.text == "/cancel":
 		return
-	bot.send_message(message.from_user.id, "Присылай кнопки в формате:\n\nкнопка1 ➖ callback_data1\nкнопка1 ➖ callback_data1\n\n/cancel для отмены")
-	bot.register_next_step_handler(message, getMessageCallback, message.text)
+	conn = dbConnect()
+	cursor = conn.cursor()
+	cursor.execute('SELECT * FROM users')
+	row = cursor.fetchone()
+	while row is not None:
+		bot.send_message(row[0], message.text, parse_mode="html")
+		row = cursor.fetchone()
+	conn.close()
 
 # @bot.message_handler(commands=['offlinegame'])
 def offlineGame(message):
 	if message.chat.type == 'private':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("SELECT * FROM offlineGame WHERE userID = '%d'" % (message.chat.id))
 		if cursor.fetchone() != None:
@@ -1278,7 +1228,7 @@ def inline(c):
 	elif c.data == "skipinvite":
 		gameStarting(c.message.chat.id)
 	elif c.data == "edittooffline":
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("DELETE FROM offlineGame WHERE userID = '%d'" % (c.message.chat.id))
 		conn.commit()
@@ -1294,7 +1244,7 @@ def inline(c):
 		except Exception:
 			pass
 	elif c.data == "rolesgiven":
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("UPDATE offlineGame SET startTime = '%d' WHERE userID = '%d'" % (c.message.date, c.message.chat.id))
 		conn.commit()
@@ -1314,7 +1264,7 @@ def inline(c):
 	elif c.data == "endofflinegame":
 		offlineGameEnd(c.message.chat.id, c.message.message_id, None)
 	elif c.data == 'getgroups':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("SELECT COUNT(*) FROM groups")
 		groups = cursor.fetchone()
@@ -1333,7 +1283,7 @@ def inline(c):
 		bot.send_message(c.message.chat.id, "Присылай новое слово!")
 		bot.register_next_step_handler(c.message, addword)
 	elif c.data == 'showords':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("SELECT word FROM words")
 		word = cursor.fetchone()
@@ -1347,15 +1297,18 @@ def inline(c):
 		bot.send_message(c.message.chat.id, "Присылай слово", parse_mode="html")
 		bot.register_next_step_handler(c.message, delword)
 	elif c.data == 'countgamers':
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("SELECT COUNT(*) FROM users")
 		gamers = cursor.fetchone()
 		conn.close()
 		bot.send_message(c.message.chat.id, "<b>На данный момент в базе – " + str(gamers[0]) + " человек(а)</b>", parse_mode="html")
 	elif c.data == 'admrass':
-		bot.send_message(c.message.chat.id, "Присылай сообщение для пользователей\n/cancel для отмены")
+		bot.send_message(c.message.chat.id, "Рассылка\n\n/cancel для отмены")
 		bot.register_next_step_handler(c.message, admrass)
+	elif c.data == 'admsendmsg':
+		bot.send_message(c.message.chat.id, "Пришлите user_id\n\n/cancel для отмены")
+		bot.register_next_step_handler(c.message, admsendmsg)
 	elif c.data == 'admpanel':
 		adminPanel(c.message, c.message.message_id)
 	elif c.data == "startgame":
@@ -1377,21 +1330,6 @@ def inline(c):
 			bot.register_next_step_handler(c.message, checkingAnswer, group_id)
 		else:
 			bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
-	elif c.data == "newwordfromuser":
-		bot.send_message(c.from_user.id, "Присылай новую локацию, а я обсужу ее добавление с администратором.\n\n/cancel для отмены")
-		bot.register_next_step_handler(c.message, checkNewWord)
-	elif "_addingword" in c.data:
-		word = c.data.split('_')[0]
-		if isMyAdmin(c.from_user.id):
-			conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
-			try:
-				cursor = conn.cursor()
-				cursor.execute("INSERT INTO words (word) VALUES ('%s')" % (word))
-				conn.commit()
-				bot.send_message(c.from_user.id, "Добавлено!")
-			except Exception as e:
-				bot.send_message(144589481, str(e))
-			conn.close()
 	elif "waitrole" in c.data:
 		id = getNumberFromCall(c.data, 'w')
 		key = types.InlineKeyboardMarkup()
@@ -1404,7 +1342,7 @@ def inline(c):
 		startOfflineGame(c.message.chat.id, c.message.message_id, getNumberFromCall(c.data, "o"))
 	elif "offlinetime" in c.data:
 		offlineTime = getNumberFromCall(c.data, 'o')
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("UPDATE offlineGame SET time = '%d' WHERE userID = '%d'" % (offlineTime * 60, c.message.chat.id))
 		conn.commit()
@@ -1429,7 +1367,7 @@ def inline(c):
 	elif "chinvite" in c.data:
 		newTime = getNumberFromCall(c.data, "_")
 		group_id = getNumberFromLetterToCall(c.data, "_", "c")
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("UPDATE settings SET inviteTime = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
 		conn.commit()
@@ -1438,7 +1376,7 @@ def inline(c):
 	elif "chtime" in c.data:
 		newTime = getNumberFromCall(c.data, "_")
 		group_id = getNumberFromLetterToCall(c.data, "_", "c")
-		conn = sqlite3.connect('baza.sqlite', check_same_thread=False)
+		conn = dbConnect()
 		cursor = conn.cursor()
 		cursor.execute("UPDATE settings SET time = '%d' WHERE grpID = '%d'" % (int(newTime), group_id))
 		conn.commit()
@@ -1457,27 +1395,8 @@ def inline(c):
 #     bot.polling(none_stop=True, interval=0)
 # except Exception:
 #     pass
-# try:
-# 	bot.send_message(144589481, "polling restart")
-# 	bot.polling(none_stop=True)
-# except Exception as e:
-# 	bot.send_message(144589481, e)
-
-def backup_db(secs: int):
-	while True:
-		time.sleep(secs)
-		date = datetime.datetime.now().strftime("%d.%m.%Y %H-%M-%S")
-		y.mkdir("/spy-backup/{}".format(date)) # Создать папку
-		y.upload("baza.db", "/spy-backup/{}/baza.sqlite".format(date)) # Загружает файл
-		bot.send_message(144589481, "База данных от {} загружена.".format(date))
-
-t = threading.Thread(target=backup_db, name="ThreadForBackup", args=(43200,))
-t.start()
-
-while True:
+try:
 	bot.send_message(144589481, "polling restart")
-	try:
-		bot.polling(none_stop=True)
-	except:
-		pass
-	time.sleep(10)
+	bot.polling(none_stop=True)
+except Exception as e:
+	bot.send_message(144589481, e)
