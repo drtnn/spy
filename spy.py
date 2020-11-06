@@ -494,21 +494,9 @@ def inline(c):
 		endGame(group_id)
 		showgameroom(c.message, c.message.message_id)
 
-def backup_db(secs: int):
-	while True:
-		time.sleep(secs)
-		date = datetime.datetime.now().strftime("%d.%m.%Y %H-%M-%S")
-		y.mkdir("/spy-backup/{}".format(date)) # Создать папку
-		y.upload("baza.sqlite", "/spy-backup/{}/baza.sqlite".format(date)) # Загружает файл
-		bot.send_message(144589481, "База данных от {} загружена.".format(date))
 
-t = threading.Thread(target=backup_db, name="ThreadForBackup", args=(43200,))
-t.start()
-
-while True:
-	bot.send_message(144589481, "polling restart")
-	try:
-		bot.polling(none_stop=True)
-	except Exception as e:
-		bot.send_message(144589481, e)
-	time.sleep(10)
+bot.send_message(144589481, "polling restart")
+try:
+	bot.polling(none_stop=True)
+except Exception as e:
+	bot.send_message(144589481, e)
