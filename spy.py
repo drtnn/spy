@@ -509,6 +509,6 @@ while True:
 	bot.send_message(144589481, "polling restart")
 	try:
 		bot.polling(none_stop=True)
-	except:
-		pass
+	except Exception as e:
+		bot.send_message(144589481, e)
 	time.sleep(10)
